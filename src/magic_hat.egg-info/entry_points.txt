@@ -1,0 +1,2 @@
+[console_scripts]
+magic-hat = magic_hat.main:main
