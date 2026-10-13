@@ -2,7 +2,7 @@
 """Main entry point and interactive menu layout for Magic Hat."""
 
 import sys
-from arc/magic_hat.utils import BANNER_IMAGE, clear_screen
+from src/magic_hat.utils import BANNER_IMAGE, clear_screen
 from src/magic_hat.database import save_item, get_all_items, search_items, calculate_budget
 
 def handle_add():
