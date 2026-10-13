@@ -2,8 +2,8 @@
 """Main entry point and interactive menu layout for Magic Hat."""
 
 import sys
-from Magic_Hat.utils import BANNER_IMAGE, clear_screen
-from Magic_Hat.database import save_item, get_all_items, search_items, calculate_budget
+from magic_hat.utils import BANNER_IMAGE, clear_screen
+from magic_hat.database import save_item, get_all_items, search_items, calculate_budget
 
 def handle_add():
     """Page 1: Add a new prop or item."""
