@@ -13,8 +13,9 @@ Magic_Hat/
 ├── README.md               # Project overview, setup, and instructions
 ├── pyproject.toml          # Modern central configuration for tools & dependencies
 ├── src/                    # Source code layout
-│   └── magic_hat/         # Primary application package
+│   └── magic_hat/          # Primary application package
 │       ├── __init__.py     # Marks directory as an importable package
+|	|── magic-hat.db    # Sqlite Database file for memory persistance
 │       ├── magic-hat.py    # Primary entry point script
 │       ├── database.py     # Sub-module for data handling
 │       └── utils.py        # Sub-module for helper functions
