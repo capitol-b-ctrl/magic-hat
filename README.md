@@ -1,17 +1,14 @@
-# Magic Hat 🎩
+# Magic Hat 🎩✨
 
-A tool to assist in magician merchandise acquisition.
+A modular command-line tool and interactive menu system designed to assist magicians and enthusiasts in tracking merchandise acquisition, inventory, and budgeting.
 
-## Setup
+---
 
-1. Create and activate a virtual environment:
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate
-```
+## 📂 Project Structure
 
-FILE_STRUCTURE 
-```
+This project follows a professional Python `src/` layout to ensure clean package distribution, separation of concerns, and test isolation:
+
+```text
 Magic_Hat/
 ├── .venv/                  # Isolated virtual environment (ignored by Git)
 ├── .gitignore              # Tells Git which files to ignore
@@ -20,10 +17,10 @@ Magic_Hat/
 ├── src/                    # Source code layout
 │   └── my_project/         # Primary application package
 │       ├── __init__.py     # Marks directory as an importable package
-│       ├── magic-hat.py         # Primary entry point script
+│       ├── magic-hat.py    # Primary entry point script
 │       ├── database.py     # Sub-module for data handling
 │       └── utils.py        # Sub-module for helper functions
 └── tests/                  # Mirror of src/ used for automated testing
     ├── __init__.py
     └── test_database.py    # Unit tests targeting database logic
-```	
+
