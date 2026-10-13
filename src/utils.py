@@ -1,5 +1,4 @@
-#### 4. `src/magic_hat/utils.py`
-```python
+`src/utils.py`
 """Utility functions and global constants for Magic Hat."""
 
 BANNER_IMAGE = """

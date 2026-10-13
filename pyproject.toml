@@ -13,3 +13,9 @@ dependencies = []
 [project.scripts]
 magic-hat = "magic_hat.main:main"
 
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
