@@ -6,8 +6,6 @@ A modular command-line tool and interactive menu system designed to assist magic
 
 ## 📂 Project Structure
 
-This project follows a professional Python `src/` layout to ensure clean package distribution, separation of concerns, and test isolation:
-
 ```text
 Magic_Hat/
 ├── .venv/                  # Isolated virtual environment (ignored by Git)
@@ -15,7 +13,7 @@ Magic_Hat/
 ├── README.md               # Project overview, setup, and instructions
 ├── pyproject.toml          # Modern central configuration for tools & dependencies
 ├── src/                    # Source code layout
-│   └── my_project/         # Primary application package
+│   └── magic_hat/         # Primary application package
 │       ├── __init__.py     # Marks directory as an importable package
 │       ├── magic-hat.py    # Primary entry point script
 │       ├── database.py     # Sub-module for data handling
