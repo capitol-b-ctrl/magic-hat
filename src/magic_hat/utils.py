@@ -39,6 +39,7 @@ BANNER_IMAGE = r"""
 
 """
 
+
 def clear_screen():
-    """Clears the terminal screen and resets the cursor to the top."""
-    print("\033[2J\033[H", end="")
+    """Clears the terminal screen, scrollback buffer, and resets cursor to top."""
+    print("\033[2J\033[3J\033[H", end="")

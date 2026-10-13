@@ -97,7 +97,7 @@ def main():
             handle_budget()
         elif choice == "5":
             clear_screen()
-            print("Exiting Magic Hat. Farewell, magician!")
+            print("Exiting Magic Hat. Farewell, magician!\n")
             sys.exit(0)
         else:
             input("Invalid selection! Press Enter to try again...")
