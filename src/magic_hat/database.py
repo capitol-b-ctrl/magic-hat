@@ -4,7 +4,7 @@ import sqlite3
 import os
 
 # Store the database file in the user's home directory for persistence
-DB_PATH = os.path.expanduser("~/.magic_hat.db")
+DB_PATH = os.path.expanduser("~/Magic_Hat/src/magic_hat/.magic_hat.db")
 
 def get_connection():
     """Establish a database connection and return row objects as dictionaries."""
