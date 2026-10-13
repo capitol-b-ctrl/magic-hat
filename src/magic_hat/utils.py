@@ -1,7 +1,7 @@
 #src/magic_hat/utils.py
 """Utility functions and global constants for Magic Hat."""
 
-BANNER_IMAGE = """
+BANNER_IMAGE = r"""
 
 
  .--..--..--..--..--..--..--..--..--..--..--..--..--..--..--.
