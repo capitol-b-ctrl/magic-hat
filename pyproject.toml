@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "magic-hat"
+version = "0.1.0"
+description = "A tool to assist in magician merchandise acquisition."
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = []
+
+[project.scripts]
+magic-hat = "magic_hat.main:main"
+

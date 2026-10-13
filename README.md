@@ -1,8 +1,17 @@
+# Magic Hat 🎩
 
+A tool to assist in magician merchandise acquisition.
 
+## Setup
+
+1. Create and activate a virtual environment:
+   ```bash
+   python3 -m venv .venv
+   source .venv/bin/activate
+```
 
 FILE_STRUCTURE 
-
+```
 Magic_Hat/
 ├── .venv/                  # Isolated virtual environment (ignored by Git)
 ├── .gitignore              # Tells Git which files to ignore
@@ -17,4 +26,4 @@ Magic_Hat/
 └── tests/                  # Mirror of src/ used for automated testing
     ├── __init__.py
     └── test_database.py    # Unit tests targeting database logic
-
+```	
