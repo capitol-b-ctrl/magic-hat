@@ -51,14 +51,24 @@ def handle_search():
     clear_screen()
     print(BANNER_IMAGE)
     print("=== PAGE: SEARCH ARCHIVES ===")
+    print("-" * 45)
     
-    query = input("Enter search keyword: ")
+    query = input("Enter search keyword: ").strip()
     print(f"\n[🔍] Searching the magical archives for '{query}'...")
     results = search_items(query)
+    
     if not results:
         print("No matching items found.")
+    else:
+        print(f"\nFound {len(results)} matching item(s):")
+        print("-" * 45)
+        print("Price | Supplier | Item")
+        print("-" * 45)
+        for item in results:
+            print(f"${item.get('price', 0):.2f} | {item.get('supplier', 'Unknown')} | {item.get('name', '')}")
     
     input("\nPress Enter to return to the main menu...")
+
 
 def handle_budget():
     """Page 4: Budget summary."""
@@ -104,3 +114,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
+...
