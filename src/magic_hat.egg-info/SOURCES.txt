@@ -1,9 +1,9 @@
 README.md
 pyproject.toml
-src/__init__.py
-src/database.py
-src/main.py
-src/utils.py
+src/magic_hat/__init__.py
+src/magic_hat/database.py
+src/magic_hat/main.py
+src/magic_hat/utils.py
 src/magic_hat.egg-info/PKG-INFO
 src/magic_hat.egg-info/SOURCES.txt
 src/magic_hat.egg-info/dependency_links.txt
