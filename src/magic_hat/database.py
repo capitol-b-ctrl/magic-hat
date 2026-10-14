@@ -2,6 +2,9 @@
 
 import sqlite3
 import os
+from datetime import datetime
+
+
 
 # Store the database file in the user's home directory for persistence
 DB_PATH = os.path.expanduser("~/Magic_Hat/src/magic_hat/.magic_hat.db")
@@ -59,3 +62,40 @@ def calculate_budget():
         cursor = conn.execute("SELECT SUM(price) FROM items")
         result = cursor.fetchone()[0]
         return float(result) if result is not None else 0.0
+
+# (Keep your existing get_connection, save_item, get_all_items, search_items, calculate_budget functions as they are)
+
+def init_db():
+    """Initialize database tables if they don't exist."""
+    with get_connection() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS items (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                price REAL NOT NULL,
+                supplier TEXT NOT NULL
+            )
+        """)
+        # Add the scan logs table
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS scan_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tool_name TEXT NOT NULL,
+                target TEXT NOT NULL,
+                output TEXT NOT NULL,
+                timestamp TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+init_db()
+
+def log_scan(tool_name, target, output):
+    """Save tool execution output to the database."""
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO scan_logs (tool_name, target, output, timestamp) VALUES (?, ?, ?, ?)",
+            (tool_name, target, output, timestamp)
+        )
+        conn.commit()
