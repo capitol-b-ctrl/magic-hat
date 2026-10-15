@@ -5,7 +5,9 @@ from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips
 from magic_hat.database import save_item, get_all_items, search_items, calculate_budget
 from magic_hat.tools import handle_pentest_suite_menu, handle_view_logs
 from magic_hat.pipeline import run_autopilot_pipeline
-from magic_hat.server import run_web_server
+from magic_hat.server import toggle_web_server, is_server_running
+
+
 
 def handle_add():
     """Page 1: Add a new prop or item."""
