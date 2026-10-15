@@ -83,6 +83,7 @@ def handle_budget():
 
 """Main entry point and interactive menu layout for Magic Hat."""
 
+
 def main():
     """Main tactical application loop."""
     while True:
@@ -93,12 +94,15 @@ def main():
         ip_str = " | ".join([f"{iface}: {ip}" for iface, ip in ips])
         print(f"[*] Interfaces -> {ip_str}")
         
+        # Display live server status
+        srv_status = "[ONLINE]" if is_server_running() else "[OFFLINE]"
+        
         print("---------------------------------------------")
         print("TACTICAL OPERATIONS MENU")
         print("---------------------------------------------")
         print("1. Offensive Security Suite (Tools)")
         print("2. Auto-Pilot Recon Pipeline")
-        print("3. Launch Local Web Dashboard (Server)")
+        print(f"3. Toggle Local Web Dashboard {srv_status}")
         print("4. View Scan Archives (Logs)")
         print("5. Exit")
         print("---------------------------------------------")
@@ -110,10 +114,12 @@ def main():
         elif choice == "2":
             run_autopilot_pipeline()
         elif choice == "3":
-            run_web_server()
+            toggle_web_server()
         elif choice == "4":
             handle_view_logs()
         elif choice == "5":
+            if is_server_running():
+                toggle_web_server()
             clear_screen()
             print("Exiting Magic Hat. Farewell, magician!\n")
             sys.exit(0)

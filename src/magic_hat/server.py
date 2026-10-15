@@ -1,10 +1,16 @@
-"""Local web dashboard and API server for Magic Hat."""
+"""Local web dashboard and background server manager for Magic Hat."""
 
 import os
+import threading
+from werkzeug.serving import make_server
 from flask import Flask, jsonify, render_template_string
 from magic_hat.database import get_scan_logs, get_connection
 
 app = Flask("magic_hat_server")
+
+# Server state management
+_server_instance = None
+_server_thread = None
 
 DASHBOARD_TEMPLATE = """
 <!DOCTYPE html>
@@ -47,7 +53,37 @@ def index():
 def api_logs():
     return jsonify(get_scan_logs())
 
-def run_web_server(host="127.0.0.1", port=8080):
-    print(f"[+] Starting Magic Hat Web Dashboard at http://{host}:{port}")
-    print("[*] Press Ctrl+C in terminal to shut down the server.")
-    app.run(host=host, port=port, debug=False)
+class ServerThread(threading.Thread):
+    def __init__(self, host="127.0.0.1", port=8080):
+        super().__init__()
+        self.server = make_server(host, port, app)
+        self.ctx = app.app_context()
+        self.ctx.push()
+
+    def run(self):
+        self.server.serve_forever()
+
+    def shutdown(self):
+        self.server.shutdown()
+
+def is_server_running():
+    """Check if the local server thread is currently active."""
+    global _server_instance
+    return _server_instance is not None
+
+def toggle_web_server(host="127.0.0.1", port=8080):
+    """Start the server in the background, or stop it if it is already running."""
+    global _server_instance
+    
+    if _server_instance is not None:
+        print("\n[*] Stopping Local Web Dashboard server...")
+        _server_instance.shutdown()
+        _server_instance = None
+        print("[✔] Web Dashboard server successfully stopped.")
+    else:
+        print(f"\n[+] Starting Local Web Dashboard in background at http://{host}:{port}")
+        _server_instance = ServerThread(host, port)
+        _server_instance.start()
+        print("[✔] Web Dashboard running in background! You can continue using Magic Hat CLI.")
+        
+    input("\nPress Enter to return...")
