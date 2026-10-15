@@ -135,7 +135,7 @@ Magic_Hat/
 │       ├── server.py     # Local Flask web dashboard and API server
 │       ├── utils.py      # System helpers, dynamic IP detection, and webhooks
 │       ├── data/         # Local enclosed database directory
-│       │   └── .magic_hat.db
+│       │   └── magic_hat.db
 │       └── reports/      # Local enclosed Markdown engagement reports
 ├── tests/                  # Mirror of src/ used for automated testing
 │   ├── __init__.py
