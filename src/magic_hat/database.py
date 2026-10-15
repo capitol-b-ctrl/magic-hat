@@ -1,5 +1,3 @@
-python
-
 
 """Database and data handling module for Magic Hat using SQLite."""
 
