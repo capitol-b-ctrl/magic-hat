@@ -81,8 +81,10 @@ def handle_budget():
     
     input("\nPress Enter to return to the main menu...")
 
+"""Main entry point and interactive menu layout for Magic Hat."""
+
 def main():
-    """Main application loop."""
+    """Main tactical application loop."""
     while True:
         clear_screen()
         print(BANNER_IMAGE)
@@ -92,38 +94,26 @@ def main():
         print(f"[*] Interfaces -> {ip_str}")
         
         print("---------------------------------------------")
-        print("MAIN MENU")
+        print("TACTICAL OPERATIONS MENU")
         print("---------------------------------------------")
-        print("1. Add a new prop or item")
-        print("2. List all items in the Hat")
-        print("3. Search for an item")
-        print("4. Show total acquisition budget")
-        print("5. Offensive Security Suite (Tools)")
-        print("6. Auto-Pilot Recon Pipeline")
-        print("7. Launch Local Web Dashboard (Server)")
-        print("8. View Scan Archives (Logs)")
-        print("9. Exit")
+        print("1. Offensive Security Suite (Tools)")
+        print("2. Auto-Pilot Recon Pipeline")
+        print("3. Launch Local Web Dashboard (Server)")
+        print("4. View Scan Archives (Logs)")
+        print("5. Exit")
         print("---------------------------------------------")
         
-        choice = input("Select an option [1-9]: ").strip()
+        choice = input("Select an option [1-5]: ").strip()
         
         if choice == "1":
-            handle_add()
-        elif choice == "2":
-            handle_list()
-        elif choice == "3":
-            handle_search()
-        elif choice == "4":
-            handle_budget()
-        elif choice == "5":
             handle_pentest_suite_menu()
-        elif choice == "6":
+        elif choice == "2":
             run_autopilot_pipeline()
-        elif choice == "7":
+        elif choice == "3":
             run_web_server()
-        elif choice == "8":
+        elif choice == "4":
             handle_view_logs()
-        elif choice == "9":
+        elif choice == "5":
             clear_screen()
             print("Exiting Magic Hat. Farewell, magician!\n")
             sys.exit(0)
