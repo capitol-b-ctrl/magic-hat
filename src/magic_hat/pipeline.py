@@ -17,14 +17,21 @@ def run_autopilot_pipeline():
         return
         
     print(f"\n[+] [Step 1/3] Running Nmap Version & Service Scan on {target}...")
+    print("[*] Please wait, version scans take a moment. Press Ctrl+C to abort safely.\n")
+    
     try:
         cmd = ["nmap", "-sV", "-T4", target]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
+        print(output)
         log_scan("AutoPilot Nmap", target, output)
         print("[✔] Nmap scan completed and logged to database.")
+    except KeyboardInterrupt:
+        print("\n\n[-] Pipeline interrupted by user. Returning to main menu...")
+        input("\nPress Enter to return...")
+        return
     except Exception as e:
-        print(f"[-] Nmap step failed: {e}")
+        print(f"\n[-] Nmap step failed: {e}")
         input("\nPress Enter to return...")
         return
         
@@ -32,8 +39,13 @@ def run_autopilot_pipeline():
     try:
         web_cmd = ["whatweb", f"http://{target}"]
         web_res = subprocess.run(web_cmd, capture_output=True, text=True, check=True)
+        print(web_res.stdout)
         log_scan("AutoPilot Fingerprint", target, web_res.stdout)
         print("[✔] Tech fingerprint completed and logged.")
+    except KeyboardInterrupt:
+        print("\n\n[-] Pipeline interrupted by user.")
+        input("\nPress Enter to return...")
+        return
     except Exception:
         print("[*] Web fingerprint skipped or target does not host standard web ports.")
         
