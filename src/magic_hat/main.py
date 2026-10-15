@@ -101,7 +101,8 @@ def main():
         print("3. Search for an item")
         print("4. Show total acquisition budget")
         print("5. Run Nmap Recon")
-        print("6. Exit")
+        print("6. View Scan Archives (Logs)")
+        print("7. Exit")
         print("---------------------------------------------")
         
         choice = input("Select an option [1-7]: ").strip()
