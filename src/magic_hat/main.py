@@ -5,6 +5,8 @@ import sys
 from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips
 from magic_hat.database import save_item, get_all_items, search_items, calculate_budget
 from magic_hat.tools import handle_pentest_suite_menu, handle_view_logs
+from magic_hat.pipeline import run_autopilot_pipeline
+from magic_hat.server import run_web_server
 
 
 def handle_add():
@@ -94,18 +96,20 @@ def main():
         ip_str = " | ".join([f"{iface}: {ip}" for iface, ip in ips])
         print(f"[*] Interfaces -> {ip_str}")
         
-        print("MAIN MENU")
+                print("MAIN MENU")
         print("---------------------------------------------")
         print("1. Add a new prop or item")
         print("2. List all items in the Hat")
         print("3. Search for an item")
         print("4. Show total acquisition budget")
         print("5. Offensive Security Suite (Tools)")
-        print("6. View Scan Archives (Logs)")
-        print("7. Exit")
+        print("6. Auto-Pilot Recon Pipeline")
+        print("7. Launch Local Web Dashboard (Server)")
+        print("8. View Scan Archives (Logs)")
+        print("9. Exit")
         print("---------------------------------------------")
         
-        choice = input("Select an option [1-7]: ").strip()
+        choice = input("Select an option [1-9]: ").strip()
         
         if choice == "1":
             handle_add()
@@ -118,13 +122,18 @@ def main():
         elif choice == "5":
             handle_pentest_suite_menu()
         elif choice == "6":
-            handle_view_logs()
+            run_autopilot_pipeline()
         elif choice == "7":
+            run_web_server()
+        elif choice == "8":
+            handle_view_logs()
+        elif choice == "9":
             clear_screen()
             print("Exiting Magic Hat. Farewell, magician!\n")
             sys.exit(0)
         else:
             input("Invalid selection! Press Enter to try again...")
+
             
             
 if __name__ == "__main__":

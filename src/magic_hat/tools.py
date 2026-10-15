@@ -270,8 +270,6 @@ def handle_tech_fingerprint():
         log_scan("Tech Fingerprint", target, f"ERROR: {error_output}")
     except FileNotFoundError:
         print("\n[-] Error: 'whatweb' binary not found. Ensure it is installed in Termux.")
-        
-    input("\nPress Enter to return...")
 
 def handle_pentest_suite_menu():
     """Parent menu for all offensive security modules."""
@@ -288,11 +286,13 @@ def handle_pentest_suite_menu():
         print("6. Subnet & ARP Discovery")
         print("7. Wireless & RF Footprinting")
         print("8. Hash Identifier & Audit Engine")
-        print("9. Automated Report Generator")
-        print("10. Return to Main Menu")
+        print("9. Exploit Search Engine (searchsploit)")
+        print("10. Credential Auditor (hydra)")
+        print("11. Automated Report Generator")
+        print("12. Return to Main Menu")
         print("---------------------------------------------")
         
-        choice = input("Select module [1-10]: ").strip()
+        choice = input("Select module [1-12]: ").strip()
         
         if choice == "1":
             handle_nmap_menu()
@@ -311,12 +311,18 @@ def handle_pentest_suite_menu():
         elif choice == "8":
             handle_hash_identifier()
         elif choice == "9":
+            handle_exploit_search()
+        elif choice == "10":
+            handle_hydra_audit()
+        elif choice == "11":
             from magic_hat.reports import handle_report_menu
             handle_report_menu()
-        elif choice == "10":
+        elif choice == "12":
             break
         else:
             input("Invalid choice! Press Enter to try again...")
+        
+    input("\nPress Enter to return...")
 
 def handle_view_logs():
     """Display past scan logs stored in the database and view full output."""
@@ -503,3 +509,71 @@ def handle_hash_identifier():
             print(f"[-] Hashcat execution failed: {e}")
             
     input("\nPress Enter to return...")
+
+def handle_exploit_search():
+    """Tool 9: Exploit Search Engine (searchsploit wrapper)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: EXPLOIT SEARCH ENGINE ===")
+    print("-" * 45)
+    
+    query = input("Enter service or software version (e.g., 'apache 2.4', 'vsftpd 2.3.4'): ").strip()
+    if not query:
+        return
+        
+    print(f"\n[+] Querying local exploit database for '{query}'...")
+    try:
+        cmd = ["searchsploit", query]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== EXPLOIT RESULTS: {query} ===")
+        print("=" * 55)
+        print(output)
+        print("=" * 55)
+        
+        log_scan("Exploit Search", query, output)
+        print("\n[✔] Exploit search results logged to database.")
+    except Exception as e:
+        print(f"[-] Searchsploit failed: {e}")
+        
+    input("\nPress Enter to return...")
+
+def handle_hydra_audit():
+    """Tool 10: Credential & Service Auditor (hydra wrapper)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: CREDENTIAL AUDITOR (HYDRA) ===")
+    print("-" * 45)
+    
+    target = input("Enter target IP/hostname: ").strip()
+    service = input("Enter service protocol (ssh, ftp, http-post-form): ").strip()
+    user = input("Enter username or user file path: ").strip()
+    wordlist = input("Enter password wordlist path: ").strip()
+    
+    if not all([target, service, user, wordlist]):
+        input("\n[-] All fields are required. Press Enter...")
+        return
+        
+    print(f"\n[+] Launching Hydra brute-force audit against {target} ({service})...")
+    try:
+        cmd = ["hydra", "-l", user, "-P", wordlist, target, service]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print("=== HYDRA AUDIT RESULTS ===")
+        print("=" * 55)
+        print(output)
+        print("=" * 55)
+        
+        log_scan("Hydra Audit", f"{service}://{target}", output)
+        print("\n[✔] Credential audit logged to database.")
+    except Exception as e:
+        print(f"[-] Hydra execution failed: {e}")
+        
+    input("\nPress Enter to return...")
+
