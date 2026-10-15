@@ -1,5 +1,3 @@
-python
-
 
 """Database and data handling module for Magic Hat using SQLite."""
 
@@ -88,7 +86,7 @@ def log_scan(tool_name, target, output):
             (tool_name, target, output, timestamp)
         )
         conn.commit()
-
+        
 def get_scan_logs():
     """Retrieve all past scan logs."""
     with get_connection() as conn:

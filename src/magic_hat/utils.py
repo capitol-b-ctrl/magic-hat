@@ -1,6 +1,9 @@
 #src/magic_hat/utils.py
 """Utility functions and global constants for Magic Hat."""
 
+import socket
+
+
 BANNER_IMAGE = r"""
 
 
@@ -40,3 +43,16 @@ BANNER_IMAGE = r"""
 def clear_screen():
     """Clears the terminal screen, scrollback buffer, and resets cursor to top."""
     print("\033[2J\033[3J\033[H", end="")
+
+
+def get_local_ip():
+    """Retrieve the device's active local IP address."""
+    try:
+        # Create a dummy socket connection to determine the preferred local interface IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"

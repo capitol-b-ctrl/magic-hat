@@ -1,36 +1,16 @@
-xy"""Pentesting tool execution handlers for Magic Hat."""
-
-import subprocess
-from magic_hat.database import log_scan
-
-def run_nmap(target):
-    """Execute an nmap scan against a target and log output."""
-    print(f"\n[+] Conjuring Nmap scan on {target}...")
-    try:
-        # Example: Basic TCP SYN / version scan flags (-sV)
-        cmd = ["nmap", "-sV", target]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        output = result.stdout
-        
-        print(output)
-        log_scan("Nmap", target, output)
-        print("[✔] Scan results successfully logged to database.")
-    except subprocess.CalledProcessError as e:
-        error_output = e.stderr or str(e)
-        print(f"[-] Nmap execution failed: {error_output}")
-        log_scan("Nmap", target, f"ERROR: {error_output}")
-    except FileNotFoundError:
-        print("[-] Error: 'nmap' binary not found in your PATH (check Termux/NetHunter packages).")
+"""Nmap penetration testing wrapper and logger for Magic Hat."""
 
 import subprocess
 from magic_hat.database import log_scan, get_scan_logs
-from magic_hat.utils import BANNER_IMAGE, clear_screen
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_local_ip
+
 
 def handle_nmap_menu():
     """Interactive Nmap scan selection and execution menu."""
     clear_screen()
     print(BANNER_IMAGE)
     print("=== PAGE: NMAP RECON SUITE ===")
+    print(f"[*] Source IP: {get_local_ip()}")
     print("-" * 45)
     
     target = input("Enter target (IP, hostname, or CIDR): ").strip()
