@@ -2,7 +2,8 @@
 
 import subprocess
 from magic_hat.database import log_scan, get_scan_logs
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_local_ip
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips
+
 
 
 def handle_nmap_menu():
@@ -10,7 +11,10 @@ def handle_nmap_menu():
     clear_screen()
     print(BANNER_IMAGE)
     print("=== PAGE: NMAP RECON SUITE ===")
-    print(f"[*] Source IP: {get_local_ip()}")
+    
+    ips = get_all_device_ips()
+    ip_str = " | ".join([f"{iface}: {ip}" for iface, ip in ips])
+    print(f"[*] Active IPs -> {ip_str}")
     print("-" * 45)
     
     target = input("Enter target (IP, hostname, or CIDR): ").strip()
@@ -89,5 +93,9 @@ def handle_view_logs():
                 else:
                     print("[-] Log ID not found.")
             input("\nPress Enter to continue...")
+
+
+
+
 
 

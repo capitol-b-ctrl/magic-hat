@@ -2,7 +2,7 @@
 """Main entry point and interactive menu layout for Magic Hat."""
 
 import sys
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_local_ip
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips
 from magic_hat.database import save_item, get_all_items, search_items, calculate_budget
 from magic_hat.tools import handle_nmap_menu, handle_view_logs
 
@@ -88,7 +88,12 @@ def main():
     while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print(f"[*] Active Local IP: {get_local_ip()}")
+        
+        # Display all active interfaces and IPs
+        ips = get_all_device_ips()
+        ip_str = " | ".join([f"{iface}: {ip}" for iface, ip in ips])
+        print(f"[*] Interfaces -> {ip_str}")
+        
         print("MAIN MENU")
         print("---------------------------------------------")
         print("1. Add a new prop or item")
@@ -96,8 +101,7 @@ def main():
         print("3. Search for an item")
         print("4. Show total acquisition budget")
         print("5. Run Nmap Recon")
-        print("6. View Scan Archives (Logs)")
-        print("7. Exit")
+        print("6. Exit")
         print("---------------------------------------------")
         
         choice = input("Select an option [1-7]: ").strip()
