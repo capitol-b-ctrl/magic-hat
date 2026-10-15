@@ -70,6 +70,8 @@ Usage Guide
 
 ## 📂 Project Structure
 
+
+``` text
 Magic_Hat/
 ├── .venv/                  # Isolated virtual environment (ignored by Git)
 ├── .gitignore              # Tells Git which files to ignore
