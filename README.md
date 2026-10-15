@@ -1,4 +1,4 @@
-# Magic Hat 🎩✨
+u# Magic Hat 🎩✨
 
 ​Magic Hat is an interactive command-line interface (CLI) tool built for Android/Termux environments. It combines a local item/budget inventory manager with a powerful penetration testing recon suite—complete with real-time network interface monitoring and automatic SQLite database logging.
 ​Features
@@ -56,17 +56,47 @@ pip install -e .
 How to Open & Run
 ​Once installed, you can launch the tool from any directory in your terminal by typing:
 
+```text 
 magic-hat
+```
 
+## 🕹️ Usage Guide
 
-Usage Guide
-​Upon launching magic-hat, the main menu will display your active local network interfaces, IPs, and operational choices:
-​Add a new prop or item: Log a new item name, estimated/actual price, and supplier into your local database.
-​List all items in the Hat: Inspect all stored inventory items formatted neatly into a table.
-​Search for an item: Perform keyword searches across your inventory items and suppliers.
-​Show total acquisition budget: Automatically calculateand display the total financial cost of all tracked components.
-​Run Nmap Recon: Enter a target IP, hostname, or CIDR block, select your scan profile, and stream results while saving them directly into your local SQLite log archive.
-​Exit: Cleanly shut down the application session.
+Launch the interactive **Magic Hat** CLI dashboard from anywhere in your mobile terminal:
+
+```text
+magic-hat
+```
+
+Main Menu Options
+
+​When you start the application, it automatically detects and displays your active device network interfaces (e.g., Wi-Fi wlan0, cellular rmnet0) before presenting the primary menu:
+
+​1. Add a new prop or item: Log equipment, hardware components, or tools into your local SQLite inventory with pricing and supplier details.
+​2. List all items in the Hat: View a formatted table of all saved physical or digital assets.
+​3. Search for an item: Query your local inventory archives by keyword.
+​4. Show total acquisition budget: Calculate the total aggregate cost of all stored inventory components.
+​5. Offensive Security Suite (Tools): Open the secondary security submenu containing 10 modular offensive tools:
+    ​•Nmap Recon Suite (Quick, Version, Full Sweep, Custom flags with regex parsing)
+    ​•Net Shark (tshark packet capture wrapper)
+    ​•Web Directory Fuzzer (ffuf / gobuster)
+    ​•DNS Footprinting (dig records & zone transfers)
+    ​•Web Tech Fingerprint (whatweb)
+    ​•Subnet & ARP Discovery
+    ​•Wireless & RF Footprinting (iw / nmcli)
+    ​•Hash Identifier & Audit Engine (hashcat assistant)
+    ​•Exploit Search Engine (searchsploit)
+    ​•Credential Auditor (hydra)
+    ​•Automated Report Generator (Compile logs to Markdown)
+​6. Auto-Pilot Recon Pipeline: Execute an automated chain that runs a version scan, tech fingerprinting, and compiles a complete report automatically.
+​7. Launch Local Web Dashboard (Server): Spin up a self-hosted Flask web interface at http://127.0.0.1:8080 to view your telemetry live in any browser.
+​8. View Scan Archives (Logs): Browse historical scan logs, inspect past targets, and read full terminal outputs by numeric ID.
+​9. Exit: Safely shut down the session.
+
+Pro-Tips for Field Operations
+      ●​Automated Reports: Whenever you run tool scans, you can export them directly into clean Markdown files located in your local src/magic_hat/reports/ folder.
+      ●​Database Telemetry: All scan results and inventory data are safely enclosed inside src/magic_hat/data/magic_hat.db.
+
 
 ## 📂 Project Structure
 
