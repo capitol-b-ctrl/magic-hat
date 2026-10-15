@@ -1,8 +1,13 @@
 README.md
 pyproject.toml
+setup.py
 src/magic_hat/__init__.py
 src/magic_hat/database.py
 src/magic_hat/main.py
+src/magic_hat/pipeline.py
+src/magic_hat/reports.py
+src/magic_hat/server.py
+src/magic_hat/tools.py
 src/magic_hat/utils.py
 src/magic_hat.egg-info/PKG-INFO
 src/magic_hat.egg-info/SOURCES.txt
