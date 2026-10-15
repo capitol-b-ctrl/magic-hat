@@ -3,90 +3,89 @@
 import subprocess
 import re
 from magic_hat.database import log_scan, get_scan_logs, get_connection
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, send_webhook_notification
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_subnet_range, send_webhook_notification
 
 def parse_open_ports(nmap_output):
     """Extract open ports and services from Nmap stdout using regex."""
     open_ports = []
-    pattern = re.compile(r"^(\d+/(?:tcp|udp))\s+open\s+([^\n]+)", re.MULTILINE)
+    pattern = re.compile(r"^(\d+/(?:tcp|udp))\s+open\s+([^\s]+)\s*(.*)$", re.MULTILINE)
     matches = pattern.findall(nmap_output)
-    for port_proto, service in matches:
+    for port_proto, service, desc in matches:
         open_ports.append({"port": port_proto, "service": service.strip()})
     return open_ports
 
 def handle_nmap_menu():
     """Interactive Nmap scan selection and execution menu."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== PAGE: NMAP RECON SUITE ===")
-    
-    ips = get_all_device_ips()
-    ip_str = " | ".join([f"{iface}: {ip}" for iface, ip in ips])
-    print(f"[*] Active IPs -> {ip_str}")
-    print("-" * 45)
-    
-    target = input("Enter target (IP, hostname, or CIDR): ").strip()
-    if not target:
-        input("\n[-] Target cannot be empty. Press Enter to return...")
-        return
-
-    print("\nSelect Nmap Scan Profile:")
-    print("1. Quick Scan (-T4 -F)")
-    print("2. Top 100 Ports + Version Detection (-sV --top-ports 100)")
-    print("3. Full Port Sweep [-p-] (-T4)")
-    print("4. Comprehensive / Aggressive Scan (-A -T4)")
-    print("5. Custom Flags")
-    
-    choice = input("\nSelect profile [1-5]: ").strip()
-    
-    flags = ["-T4", "-F"]
-    if choice == "2":
-        flags = ["-sV", "--top-ports", "100"]
-    elif choice == "3":
-        flags = ["-p-", "-T4"]
-    elif choice == "4":
-        flags = ["-A", "-T4"]
-    elif choice == "5":
-        custom = input("Enter custom nmap arguments (e.g., -p 1-1000 -sS): ").strip()
-        flags = custom.split()
-    
-    print(f"\n[+] Conjuring Nmap scan on {target} with flags: {' '.join(flags)}...")
-    print("[*] Scanning in progress...")
-    
-    try:
-        cmd = ["nmap"] + flags + [target]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        output = result.stdout
-        
-        open_ports = parse_open_ports(output)
-        
+    while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print(f"=== NMAP SCAN RESULTS: {target} ===")
-        print("=" * 55)
+        print("=== PAGE: NMAP RECON SUITE ===")
+        print("-" * 45)
+        print("1. Quick Scan (-T4)")
+        print("2. Top 100 Ports + Version Detection (-sV --top-ports 100)")
+        print("3. Full Port Sweep (-p- -T4)")
+        print("4. Aggressive Scan (-A -T4)")
+        print("5. Custom Flags")
+        print("99. Back to Suite Menu (b)")
+        print("-" * 45)
         
-        if open_ports:
-            print(f"[+] FOUND {len(open_ports)} OPEN PORT(S):")
-            print(f"{'PORT/PROTO':<12} | {'SERVICE / VERSION'}")
-            print("-" * 55)
-            for p in open_ports:
-                print(f"{p['port']:<12} | {p['service']}")
-        else:
-            print("[*] No open ports detected or target is filtering responses.")
+        choice = input("Select profile [1-5, or 99/b]: ").strip().lower()
+        if choice in ["99", "b", "back"]:
+            break
             
-        print("=" * 55)
-        
-        log_scan("Nmap", target, output)
-        print("\n[✔] Scan results successfully logged to database.")
-        
-    except subprocess.CalledProcessError as e:
-        error_output = e.stderr or str(e)
-        print(f"\n[-] Nmap failed:\n{error_output}")
-        log_scan("Nmap", target, f"ERROR: {error_output}")
-    except FileNotFoundError:
-        print("\n[-] Error: 'nmap' binary not found. Run 'pkg install nmap'.")
-    
-    input("\nPress Enter to return...")
+        target = input("Enter target IP, hostname, or CIDR (or 'b' to back): ").strip()
+        if target.lower() in ["b", "99", "back", ""]:
+            continue
+            
+        flags = ["-T4"]
+        if choice == "1":
+            flags = ["-T4"]
+        elif choice == "2":
+            flags = ["-sV", "--top-ports", "100"]
+        elif choice == "3":
+            flags = ["-p-", "-T4"]
+        elif choice == "4":
+            flags = ["-A", "-T4"]
+        elif choice == "5":
+            custom = input("Enter custom nmap arguments (e.g., -p 1-1000 -sS): ").strip()
+            if custom.lower() in ["b", "99", "back"]:
+                continue
+            flags = custom.split()
+        else:
+            input("Invalid selection! Press Enter to continue...")
+            continue
+            
+        print(f"\n[+] Conjuring Nmap scan on {target} with flags: {' '.join(flags)}")
+        print("[*] Scanning in progress...")
+        try:
+            cmd = ["nmap"] + flags + [target]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            output = result.stdout
+            
+            open_ports = parse_open_ports(output)
+            
+            clear_screen()
+            print(BANNER_IMAGE)
+            print(f"=== NMAP SCAN RESULTS: {target} ===")
+            print("-" * 55)
+            if open_ports:
+                print(f"{'PORT/PROTO':<12} | {'SERVICE / VERSION'}")
+                print("-" * 55)
+                for p in open_ports:
+                    print(f"{p['port']:<12} | {p['service']}")
+            else:
+                print("[*] Raw scan output (no standard ports parsed):")
+                print(output[:1500])
+            print("-" * 55)
+            
+            log_scan("Nmap Recon", target, output)
+            print("[✔] Scan results successfully logged to database.")
+        except subprocess.CalledProcessError as e:
+            print(f"\n[-] Nmap failed: {e.stderr or str(e)}")
+        except FileNotFoundError:
+            print("\n[-] Error: 'nmap' binary not found. Run 'pkg install nmap'.")
+            
+        input("\nPress Enter to return...")
 
 def handle_net_shark():
     """Tool 2: Net Shark (Packet Capture / tshark)."""
@@ -100,15 +99,14 @@ def handle_net_shark():
         print(f"    - {iface} ({ip})")
     print("-" * 45)
     
-    iface = input("Enter interface to sniff (e.g., wlan0, rmnet0): ").strip()
-    if not iface:
+    iface = input("Enter interface to sniff (e.g., wlan0, rmnet0) or 'b' to back: ").strip()
+    if iface.lower() in ["b", "99", "back", ""]:
         return
         
     count = input("Enter packet count limit (default 20): ").strip() or "20"
     
     print(f"\n[+] Initializing Net Shark on {iface} (capturing {count} packets)...")
     print("[*] Press Ctrl+C if you need to abort early.\n")
-    
     try:
         cmd = ["tshark", "-i", iface, "-c", str(count)]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -117,22 +115,17 @@ def handle_net_shark():
         clear_screen()
         print(BANNER_IMAGE)
         print(f"=== PACKET CAPTURE RESULTS: {iface} ===")
-        print("=" * 55)
         print(output)
-        print("=" * 55)
         
         log_scan("Net Shark", iface, output)
         print("\n[✔] Packet capture logged to database.")
     except subprocess.CalledProcessError as e:
-        error_output = e.stderr or str(e)
-        print(f"\n[-] Tshark capture failed: {error_output}")
-        print("[-] Note: Sniffing cellular interfaces (like rmnet0) usually requires root/NetHunter privileges.")
-        log_scan("Net Shark", iface, f"ERROR: {error_output}")
+        print(f"\n[-] Tshark failed: {e.stderr or str(e)}")
+        print("[-] Note: Sniffing cellular interfaces (like rmnet0) requires root privileges.")
     except FileNotFoundError:
-        print("\n[-] Error: 'tshark' not found in path.")
+        print("\n[-] Error: 'tshark' not found in path. Run 'pkg install tshark'.")
         
     input("\nPress Enter to return...")
-
 
 def handle_web_fuzzer():
     """Tool 3: Web Directory Fuzzer (ffuf wrapper)."""
@@ -141,41 +134,33 @@ def handle_web_fuzzer():
     print("=== PAGE: WEB DIR FUZZER (FFUF) ===")
     print("-" * 45)
     
-    url = input("Enter target URL (e.g., http://10.0.0.1/FUZZ): ").strip()
-    if not url:
-        input("\n[-] URL cannot be empty. Press Enter...")
+    url = input("Enter target URL (e.g., http://10.0.0.1/FUZZ) or 'b' to back: ").strip()
+    if url.lower() in ["b", "99", "back", ""]:
         return
         
     if "FUZZ" not in url:
-        print("\n[!] Note: 'FUZZ' keyword missing in URL. Appending '/FUZZ'.")
+        print("[!] Note: 'FUZZ' keyword missing in URL. Appending '/FUZZ'.")
         url = url.rstrip("/") + "/FUZZ"
         
-    wordlist = input("Enter wordlist path (default: common.txt or wordlist path): ").strip()
+    wordlist = input("Enter wordlist path (default: /data/data/com.termux/files/usr/share/wordlists/dirb/common.txt): ").strip()
     if not wordlist:
-        # Common Termux or standard wordlist fallback location
         wordlist = "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt"
         
     print(f"\n[+] Launching FFUF fuzzer against {url}...")
-    
     try:
-        cmd = ["ffuf", "-u", url, "-w", wordlist, "-s"] # -s for silent/clean output
+        cmd = ["ffuf", "-u", url, "-w", wordlist, "-s"]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
         print(BANNER_IMAGE)
-        print("=== FFUF DISCOVERY RESULTS ===")
-        print("=" * 55)
+        print(f"=== FFUF DISCOVERY RESULTS ===")
         print(output if output else "[*] Scan completed, but no standard output captured.")
-        print("=" * 55)
         
         log_scan("Web Fuzzer", url, output)
         print("\n[✔] Web fuzzing results successfully logged to database.")
-        
     except subprocess.CalledProcessError as e:
-        error_output = e.stderr or str(e)
-        print(f"\n[-] FFUF failed: {error_output}")
-        log_scan("Web Fuzzer", url, f"ERROR: {error_output}")
+        print(f"\n[-] FFUF failed: {e.stderr or str(e)}")
     except FileNotFoundError:
         print("\n[-] Error: 'ffuf' binary not found. Run 'pkg install ffuf'.")
         
@@ -188,12 +173,11 @@ def handle_dns_recon():
     print("=== PAGE: DNS FOOTPRINTING (DIG) ===")
     print("-" * 45)
     
-    domain = input("Enter target domain or hostname (e.g., example.com): ").strip()
-    if not domain:
-        input("\n[-] Domain cannot be empty. Press Enter...")
+    domain = input("Enter target domain or hostname (or 'b' to back): ").strip()
+    if domain.lower() in ["b", "99", "back", ""]:
         return
         
-    print("\nSelect Record Query Type:")
+    print("Select Record Query Type:")
     print("1. Standard Query (A, MX, NS)")
     print("2. All Records (ANY)")
     print("3. Zone Transfer Attempt (AXFR)")
@@ -206,7 +190,6 @@ def handle_dns_recon():
         qtype = "AXFR"
         
     print(f"\n[+] Querying DNS records for {domain}...")
-    
     try:
         cmd = ["dig", domain]
         if qtype:
@@ -217,18 +200,13 @@ def handle_dns_recon():
         
         clear_screen()
         print(BANNER_IMAGE)
-        print(f"=== DNS RESULTS: {domain} ===")
-        print("=" * 55)
+        print(f"=== DNS RESULTS ({domain}) ===")
         print(output)
-        print("=" * 55)
         
         log_scan("DNS Recon", domain, output)
         print("\n[✔] DNS footprint logged to database.")
-        
     except subprocess.CalledProcessError as e:
-        error_output = e.stderr or str(e)
-        print(f"\n[-] Dig failed: {error_output}")
-        log_scan("DNS Recon", domain, f"ERROR: {error_output}")
+        print(f"\n[-] Dig failed: {e.stderr or str(e)}")
     except FileNotFoundError:
         print("\n[-] Error: 'dig' binary not found. Run 'pkg install dnsutils'.")
         
@@ -241,13 +219,11 @@ def handle_tech_fingerprint():
     print("=== PAGE: WEB TECH FINGERPRINT (WHATWEB) ===")
     print("-" * 45)
     
-    target = input("Enter target URL or IP (e.g., http://example.com): ").strip()
-    if not target:
-        input("\n[-] Target cannot be empty. Press Enter...")
+    target = input("Enter target URL or IP (or 'b' to back): ").strip()
+    if target.lower() in ["b", "99", "back", ""]:
         return
         
     print(f"\n[+] Fingerprinting technology stack for {target}...")
-    
     try:
         cmd = ["whatweb", target]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
@@ -256,19 +232,297 @@ def handle_tech_fingerprint():
         clear_screen()
         print(BANNER_IMAGE)
         print(f"=== TECH STACK REPORT: {target} ===")
-        print("=" * 55)
         print(output)
-        print("=" * 55)
         
         log_scan("Tech Fingerprint", target, output)
         print("\n[✔] Fingerprint results logged to database.")
-        
     except subprocess.CalledProcessError as e:
-        error_output = e.stderr or str(e)
-        print(f"\n[-] WhatWeb failed: {error_output}")
-        log_scan("Tech Fingerprint", target, f"ERROR: {error_output}")
+        print(f"\n[-] WhatWeb failed: {e.stderr or str(e)}")
     except FileNotFoundError:
         print("\n[-] Error: 'whatweb' binary not found. Ensure it is installed in Termux.")
+        
+    input("\nPress Enter to return...")
+
+def handle_subnet_sweep():
+    """Tool 6: Local Subnet Discovery & ARP Sweeping."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: SUBNET & ARP DISCOVERY ===")
+    print("-" * 45)
+    
+    ips = get_all_device_ips()
+    default_sub = "192.168.1.0/24"
+    if ips:
+        _, ip_c = ips[0]
+        default_sub = get_subnet_range(ip_c)
+        
+    subnet = input(f"Enter target CIDR [default {default_sub}] or 'b' to back: ").strip()
+    if subnet.lower() in ["b", "99", "back"]:
+        return
+    target_sub = subnet if subnet else default_sub
+        
+    print(f"\n[+] Sweeping subnet {target_sub} for live hosts...")
+    try:
+        cmd = ["nmap", "-sn", target_sub]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== LIVE HOST DISCOVERY: {target_sub} ===")
+        print(output)
+        
+        log_scan("Subnet Sweep", target_sub, output)
+        send_webhook_notification("Subnet Sweep Complete", f"Discovered live hosts on {target_sub}")
+        print("\n[✔] Sweep results logged and webhook triggered.")
+    except Exception as e:
+        print(f"\n[-] Sweep failed: {e}")
+        
+    input("\nPress Enter to return...")
+
+def handle_wireless_recon():
+    """Tool 7: Wireless & RF Footprinting Wrapper."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: WIRELESS & RF FOOTPRINTING ===")
+    print("-" * 45)
+    print("1. List Wireless Interfaces & Status (iw / nmcli)")
+    print("2. Scan Nearby Wi-Fi Networks")
+    print("99. Back to Suite Menu (b)")
+    print("-" * 45)
+    
+    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    if choice in ["99", "b", "back"]:
+        return
+    elif choice == "1":
+        cmd = ["iw", "dev"]
+    elif choice == "2":
+        cmd = ["nmcli", "dev", "wifi"]
+    else:
+        return
+        
+    print("\n[+] Querying wireless subsystem...")
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print("=== WIRELESS RECON REPORT ===")
+        print(output if output else "[*] Command executed but returned no output.")
+        
+        log_scan("Wireless Recon", "Local RF", output)
+        print("\n[✔] Wireless telemetry logged to database.")
+    except Exception as e:
+        print(f"\n[-] Wireless command failed: {e}")
+        
+    input("\nPress Enter to return...")
+
+def handle_hash_identifier():
+    """Tool 8: Hash Identification & Cracking Assistant."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: HASH IDENTIFIER & AUDIT ===")
+    print("-" * 45)
+    
+    hash_str = input("Enter hash string to analyze (or 'b' to back): ").strip()
+    if hash_str.lower() in ["b", "99", "back", ""]:
+        return
+        
+    length = len(hash_str)
+    identified = []
+    
+    if length == 32 and re.match(r"^[a-fA-F0-9]{32}$", hash_str):
+        identified.append("MD5 / NTLM / MD4")
+    elif length == 40 and re.match(r"^[a-fA-F0-9]{40}$", hash_str):
+        identified.append("SHA-1 / MySQL")
+    elif length == 64 and re.match(r"^[a-fA-F0-9]{64}$", hash_str):
+        identified.append("SHA-256 / WPA-PSK TKIP")
+    elif hash_str.startswith("$2a$") or hash_str.startswith("$2b$") or hash_str.startswith("$2y$"):
+        identified.append("Bcrypt (Blowfish)")
+    elif hash_str.startswith("$6$"):
+        identified.append("SHA-512 Crypt (Linux)")
+    else:
+        identified.append("Unknown or complex hash format")
+        
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== HASH ANALYSIS RESULTS ===")
+    print(f"[*] Input Hash: {hash_str}")
+    print(f"[*] Length: {length} characters")
+    print("[*] Potential Formats:")
+    for fmt in identified:
+        print(f"    - {fmt}")
+    print("-" * 55)
+    
+    run_crack = input("Would you like to invoke hashcat against this hash? (y/n): ").strip().lower()
+    if run_crack == 'y':
+        mode = input("Enter hashcat mode number (e.g., 0 for MD5, 1000 for NTLM): ").strip()
+        wordlist = input("Enter wordlist path: ").strip()
+        if mode and wordlist:
+            print("\n[+] Launching hashcat audit...")
+            try:
+                cmd = ["hashcat", "-a", "0", "-m", mode, hash_str, wordlist]
+                res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                print(res.stdout)
+                log_scan("Hash Audit", hash_str, res.stdout)
+            except Exception as e:
+                print(f"[-] Hashcat execution failed: {e}")
+                
+    input("\nPress Enter to return...")
+
+def handle_exploit_search():
+    """Tool 9: Exploit Search Engine (searchsploit wrapper)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: EXPLOIT SEARCH ENGINE ===")
+    print("-" * 45)
+    
+    query = input("Enter service or software version (e.g., 'apache 2.4', 'vsftpd 2.3.4') or 'b' to back: ").strip()
+    if query.lower() in ["b", "99", "back", ""]:
+        return
+        
+    print(f"\n[+] Querying local exploit database for '{query}'...")
+    try:
+        cmd = ["searchsploit", query]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== EXPLOIT RESULTS: {query} ===")
+        print(output)
+        
+        log_scan("Exploit Search", query, output)
+        print("\n[✔] Exploit search results logged to database.")
+    except FileNotFoundError:
+        print("\n[-] Error: 'searchsploit' binary not found. Install exploitdb.")
+    except Exception as e:
+        print(f"\n[-] Searchsploit failed: {e}")
+        
+    input("\nPress Enter to return...")
+
+def handle_hydra_audit():
+    """Tool 10: Credential & Service Auditor (hydra wrapper)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: CREDENTIAL AUDITOR (HYDRA) ===")
+    print("-" * 45)
+    
+    target = input("Enter target IP/hostname (or 'b' to back): ").strip()
+    if target.lower() in ["b", "99", "back", ""]:
+        return
+    service = input("Enter service protocol (ssh, ftp, http-post-form): ").strip()
+    user = input("Enter username or user file path: ").strip()
+    wordlist = input("Enter password wordlist path: ").strip()
+    
+    if not all([target, service, user, wordlist]):
+        input("\n[-] All fields are required. Press Enter to return...")
+        return
+        
+    print(f"\n[+] Launching Hydra brute-force audit against {target} ({service})...")
+    try:
+        cmd = ["hydra", "-l", user, "-P", wordlist, target, service]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== HYDRA AUDIT RESULTS ===")
+        print(output)
+        
+        log_scan("Hydra Audit", f"{service}://{target}", output)
+        print("\n[✔] Credential audit logged to database.")
+    except Exception as e:
+        print(f"\n[-] Hydra execution failed: {e}")
+        
+    input("\nPress Enter to return...")
+
+def handle_wireless_bt_scanner():
+    """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices using Termux API or binaries."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== OPTION 1: WIRELESS & BLUETOOTH AIRSPACE SCAN ===")
+    print("-" * 55)
+    
+    print("[*] Scanning nearby Wi-Fi access points...")
+    wifi_output = ""
+    try:
+        res = subprocess.run(["termux-wifi-scaninfo"], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0 and res.stdout.strip() and "[]" not in res.stdout:
+            wifi_output = res.stdout
+    except Exception:
+        pass
+        
+    if not wifi_output:
+        try:
+            res = subprocess.run(["nmcli", "dev", "wifi"], capture_output=True, text=True, timeout=5)
+            wifi_output = res.stdout
+        except Exception:
+            try:
+                res = subprocess.run(["iw", "dev"], capture_output=True, text=True, timeout=5)
+                wifi_output = res.stdout
+            except Exception:
+                pass
+                
+    if wifi_output.strip():
+        print(wifi_output)
+    else:
+        print("[-] Wi-Fi scan returned no data. (Tip: Install 'termux-api' package & app).")
+
+    print("\n" + "=" * 55)
+    print("[*] Scanning nearby Bluetooth devices...")
+    bt_output = ""
+    try:
+        res = subprocess.run(["termux-bluetooth-devices"], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0 and res.stdout.strip() and "[]" not in res.stdout:
+            bt_output = res.stdout
+    except Exception:
+        pass
+        
+    if not bt_output:
+        try:
+            res = subprocess.run(["hcitool", "scan"], capture_output=True, text=True, timeout=6)
+            bt_output = res.stdout
+        except Exception:
+            pass
+            
+    if bt_output.strip():
+        print(bt_output)
+    else:
+        print("[-] Bluetooth scan returned no data. Ensure Bluetooth is enabled.")
+        
+    log_scan("Wireless & BT Scanner", "Local Airspace", "Executed airspace scan via Termux API/binaries")
+    input("\nPress Enter to return to main menu...")
+
+def handle_subnet_sweep_tool():
+    """Option 2: Whole Subnet Host Sweep (Active Discovery)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== OPTION 2: WHOLE SUBNET HOST SWEEP ===")
+    print("-" * 55)
+    
+    ips = get_all_device_ips()
+    default_subnet = "192.168.1.0/24"
+    if ips:
+        _, ip_cidr = ips[0]
+        default_subnet = get_subnet_range(ip_cidr)
+        
+    subnet = input(f"Enter subnet/CIDR [default {default_subnet}] (or 'b' to back): ").strip()
+    if subnet.lower() in ["b", "99", "back"]:
+        return
+    target_subnet = subnet if subnet else default_subnet
+    
+    print(f"\n[+] Executing active ping/ARP sweep on host space: {target_subnet}...")
+    try:
+        cmd = ["nmap", "-sn", target_subnet]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(res.stdout)
+        log_scan("Subnet Sweep", target_subnet, res.stdout)
+    except Exception as e:
+        print(f"\n[-] Subnet sweep failed: {e}")
+        
+    input("\nPress Enter to return to main menu...")
 
 def handle_pentest_suite_menu():
     """Parent menu for all offensive security modules."""
@@ -276,10 +530,10 @@ def handle_pentest_suite_menu():
         clear_screen()
         print(BANNER_IMAGE)
         print("=== OFFENSIVE SECURITY SUITE ===")
-        print("---------------------------------------------")
+        print("-" * 45)
         print("1. Nmap Recon Suite")
         print("2. Net Shark (Packet Capture / tshark)")
-        print("3. Web Directory Fuzzer (ffuf / gobuster)")
+        print("3. Web Directory Fuzzer (ffuf)")
         print("4. DNS Footprinting (dig)")
         print("5. Web Tech Fingerprint (whatweb)")
         print("6. Subnet & ARP Discovery")
@@ -288,12 +542,14 @@ def handle_pentest_suite_menu():
         print("9. Exploit Search Engine (searchsploit)")
         print("10. Credential Auditor (hydra)")
         print("11. Automated Report Generator")
-        print("12. Return to Main Menu")
-        print("---------------------------------------------")
+        print("99. Return to Main Menu (b)")
+        print("-" * 45)
         
-        choice = input("Select module [1-12]: ").strip()
+        choice = input("Select module [1-11, or 99/b]: ").strip().lower()
         
-        if choice == "1":
+        if choice in ["99", "b", "back"]:
+            break
+        elif choice == "1":
             handle_nmap_menu()
         elif choice == "2":
             handle_net_shark()
@@ -316,19 +572,15 @@ def handle_pentest_suite_menu():
         elif choice == "11":
             from magic_hat.reports import handle_report_menu
             handle_report_menu()
-        elif choice == "12":
-            break
         else:
             input("Invalid choice! Press Enter to try again...")
-        
-    input("\nPress Enter to return...")
 
 def handle_view_logs():
     """Display past scan logs stored in the database and view full output."""
     while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print("=== PAGE: SCAN ARCHIVES (LOGS) ===")
+        print("=== SCAN ARCHIVES (LOGS) ===")
         print("-" * 55)
         
         logs = get_scan_logs()
@@ -336,341 +588,33 @@ def handle_view_logs():
             print("No scan logs found in the archives yet.")
             input("\nPress Enter to return to the main menu...")
             break
+            
+        print(f"{'ID':<4} | {'Tool':<16} | {'Target':<15} | {'Timestamp'}")
+        print("-" * 55)
+        for log in logs:
+            print(f"{log['id']:<4} | {log['tool_name']:<16} | {log['target']:<15} | {log['timestamp']}")
+            
+        print("-" * 55)
+        view_id = input("Enter log ID to view full output (or press Enter to go back): ").strip()
+        if not view_id:
+            break
+            
+        if view_id.isdigit():
+            with get_connection() as conn:
+                row = conn.execute("SELECT tool_name, target, timestamp, output FROM scan_logs WHERE id = ?", (view_id,)).fetchone()
+                if row:
+                    clear_screen()
+                    print(BANNER_IMAGE)
+                    print(f"=== LOG DETAILS [ID: {view_id}] ===")
+                    print(f"Tool:   {row['tool_name']}")
+                    print(f"Target: {row['target']}")
+                    print(f"Time:   {row['timestamp']}")
+                    print("-" * 55)
+                    print(row['output'])
+                    print("-" * 55)
+                else:
+                    print("\n[-] Error: Log ID not found.")
+            input("\nPress Enter to continue...")
         else:
-            print(f"{'ID':<4} | {'Tool':<16} | {'Target':<16} | {'Timestamp'}")
-            print("-" * 65)
-            for log in logs:
-                print(f"{log.get('id', 0):<4} | {log.get('tool_name', ''):<16} | {log.get('target', ''):<16} | {log.get('timestamp', '')}")
-                
-            print("-" * 65)
-            view_id = input("Enter log ID to view full output (or press Enter to go back): ").strip()
-            
-            if not view_id:
-                break
-                
-            if view_id.isdigit():
-                with get_connection() as conn:
-                    cursor = conn.execute("SELECT tool_name, target, timestamp, output FROM scan_logs WHERE id = ?", (view_id,))
-                    row = cursor.fetchone()
-                    if row:
-                        clear_screen()
-                        print(BANNER_IMAGE)
-                        print(f"=== LOG DETAILS [ID: {view_id}] ===")
-                        print(f"[*] Tool:      {row['tool_name']}")
-                        print(f"[*] Target:    {row['target']}")
-                        print(f"[*] Timestamp: {row['timestamp']}")
-                        print("=" * 55)
-                        print(row["output"])
-                        print("=" * 55)
-                    else:
-                        print("\n[-] Error: Log ID not found.")
-                input("\nPress Enter to continue...")
-            else:
-                print("\n[-] Invalid input. Please enter a numeric ID.")
-                input("\nPress Enter to continue...")
-
-def handle_subnet_sweep():
-    """Tool 6: Local Subnet Discovery & ARP Sweeping."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== PAGE: SUBNET & ARP DISCOVERY ===")
-    
-    ips = get_all_device_ips()
-    print("[*] Active Interface IPs:")
-    for iface, ip in ips:
-        print(f"    - {iface}: {ip}")
-    print("-" * 45)
-    
-    subnet = input("Enter target CIDR or interface subnet (e.g., 192.168.1.0/24): ").strip()
-    if not subnet:
-        input("\n[-] Subnet cannot be empty. Press Enter...")
-        return
-        
-    print(f"\n[+] Sweeping subnet {subnet} for live hosts...")
-    
-    try:
-        # Try arp-scan first, fallback to nmap ping sweep if unavailable
-        cmd = ["arp-scan", "--localnet"] if "/" not in subnet else ["nmap", "-sn", subnet]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        output = result.stdout
-        
-        clear_screen()
-        print(BANNER_IMAGE)
-        print(f"=== LIVE HOST DISCOVERY: {subnet} ===")
-        print("=" * 55)
-        print(output)
-        print("=" * 55)
-        
-        log_scan("Subnet Sweep", subnet, output)
-        send_webhook_notification("Subnet Sweep Complete", f"Discovered live hosts on {subnet}")
-        print("\n[✔] Sweep results logged and webhook triggered.")
-        
-    except subprocess.CalledProcessError as e:
-        error_output = e.stderr or str(e)
-        print(f"\n[-] Sweep failed: {error_output}")
-        log_scan("Subnet Sweep", subnet, f"ERROR: {error_output}")
-    except FileNotFoundError:
-        print("\n[-] Error: 'arp-scan' or 'nmap' not found in path.")
-        
-    input("\nPress Enter to return...")
-
-def handle_wireless_recon():
-    """Tool 7: Wireless & RF Footprinting Wrapper."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== PAGE: WIRELESS & RF FOOTPRINTING ===")
-    print("-" * 45)
-    print("1. List Wireless Interfaces & Status (iw dev / nmcli)")
-    print("2. Scan Nearby Wi-Fi Networks (nmcli device wifi list)")
-    print("3. Return")
-    print("-" * 45)
-    
-    choice = input("Select option [1-3]: ").strip()
-    if choice == "1":
-        cmd = ["iw", "dev"]
-    elif choice == "2":
-        cmd = ["nmcli", "device", "wifi", "list"]
-    else:
-        return
-        
-    print("\n[+] Querying wireless subsystem...")
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        output = result.stdout
-        
-        clear_screen()
-        print(BANNER_IMAGE)
-        print("=== WIRELESS RECON REPORT ===")
-        print("=" * 55)
-        print(output)
-        print("=" * 55)
-        
-        log_scan("Wireless Recon", "Local RF", output)
-        print("\n[✔] Wireless telemetry logged to database.")
-    except Exception as e:
-        print(f"\n[-] Wireless command failed: {e}")
-        
-    input("\nPress Enter to return...")
-
-def handle_hash_identifier():
-    """Tool 8: Hash Identification & Cracking Assistant."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== PAGE: HASH IDENTIFIER & AUDIT ===")
-    print("-" * 45)
-    
-    hash_str = input("Enter hash string to analyze: ").strip()
-    if not hash_str:
-        input("\n[-] Hash cannot be empty. Press Enter...")
-        return
-        
-    # Regex-based heuristic hash identification
-    identified = []
-    length = len(hash_str)
-    
-    if length == 32 and re.match(r"^[a-fA-F0-9]{32}$", hash_str):
-        identified.append("MD5 / NTLM / MD4")
-    elif length == 40 and re.match(r"^[a-fA-F0-9]{40}$", hash_str):
-        identified.append("SHA-1 / MySQL5.x")
-    elif length == 64 and re.match(r"^[a-fA-F0-9]{64}$", hash_str):
-        identified.append("SHA-256 / WPA-PSK PMK")
-    elif hash_str.startswith("$2a$") or hash_str.startswith("$2b$") or hash_str.startswith("$2y$"):
-        identified.append("Bcrypt (Blowfish)")
-    elif hash_str.startswith("$6$"):
-        identified.append("SHA-512 Crypt (Linux)")
-    else:
-        identified.append("Unknown or complex hash format")
-        
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== HASH ANALYSIS RESULTS ===")
-    print("=" * 55)
-    print(f"[*] Input Hash: {hash_str}")
-    print(f"[*] Length:     {length} characters")
-    print(f"[+] Potential Formats:")
-    for fmt in identified:
-        print(f"    - {fmt}")
-    print("=" * 55)
-    
-    run_crack = input("\nWould you like to invoke hashcat against this hash? (y/N): ").strip().lower()
-    if run_crack == 'y':
-        mode = input("Enter hashcat mode number (e.g., 0 for MD5, 1000 for NTLM): ").strip()
-        wordlist = input("Enter wordlist path: ").strip()
-        
-        print(f"\n[+] Launching hashcat audit...")
-        try:
-            # Hashcat command execution wrapper
-            cmd = ["hashcat", "-m", mode, hash_str, wordlist]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            print(result.stdout)
-            log_scan("Hash Audit", hash_str, result.stdout)
-        except Exception as e:
-            print(f"[-] Hashcat execution failed: {e}")
-            
-    input("\nPress Enter to return...")
-
-def handle_exploit_search():
-    """Tool 9: Exploit Search Engine (searchsploit wrapper)."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== PAGE: EXPLOIT SEARCH ENGINE ===")
-    print("-" * 45)
-    
-    query = input("Enter service or software version (e.g., 'apache 2.4', 'vsftpd 2.3.4'): ").strip()
-    if not query:
-        return
-        
-    print(f"\n[+] Querying local exploit database for '{query}'...")
-    try:
-        cmd = ["searchsploit", query]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        output = result.stdout
-        
-        clear_screen()
-        print(BANNER_IMAGE)
-        print(f"=== EXPLOIT RESULTS: {query} ===")
-        print("=" * 55)
-        print(output)
-        print("=" * 55)
-        
-        log_scan("Exploit Search", query, output)
-        print("\n[✔] Exploit search results logged to database.")
-    except FileNotFoundError:
-        print("\n[-] Error: 'searchsploit' binary not found.")
-        print("    Run 'pkg install exploitdb' or access via your Kali NetHunter chroot.")
-    except Exception as e:
-        print(f"[-] Searchsploit failed: {e}")
-        
-    input("\nPress Enter to return...")
-
-def handle_hydra_audit():
-    """Tool 10: Credential & Service Auditor (hydra wrapper)."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== PAGE: CREDENTIAL AUDITOR (HYDRA) ===")
-    print("-" * 45)
-    
-    target = input("Enter target IP/hostname: ").strip()
-    service = input("Enter service protocol (ssh, ftp, http-post-form): ").strip()
-    user = input("Enter username or user file path: ").strip()
-    wordlist = input("Enter password wordlist path: ").strip()
-    
-    if not all([target, service, user, wordlist]):
-        input("\n[-] All fields are required. Press Enter...")
-        return
-        
-    print(f"\n[+] Launching Hydra brute-force audit against {target} ({service})...")
-    try:
-        cmd = ["hydra", "-l", user, "-P", wordlist, target, service]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        output = result.stdout
-        
-        clear_screen()
-        print(BANNER_IMAGE)
-        print("=== HYDRA AUDIT RESULTS ===")
-        print("=" * 55)
-        print(output)
-        print("=" * 55)
-        
-        log_scan("Hydra Audit", f"{service}://{target}", output)
-        print("\n[✔] Credential audit logged to database.")
-    except Exception as e:
-        print(f"[-] Hydra execution failed: {e}")
-        
-    input("\nPress Enter to return...")
-
-def handle_wireless_bt_scanner():
-    """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices using Termux API or binaries."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== OPTION 1: WIRELESS & BLUETOOTH AIRSPACE SCAN ===")
-    print("-" * 55)
-    
-    print("[*] Scanning nearby Wi-Fi access points...")
-    wifi_output = ""
-    
-    # Try Termux API first (best for non-rooted Android/Termux)
-    try:
-        res = subprocess.run(["termux-wifi-scaninfo"], capture_output=True, text=True, timeout=5)
-        if res.returncode == 0 and res.stdout.strip() and "[]" not in res.stdout:
-            wifi_output = res.stdout
-    except Exception:
-        pass
-        
-    # Fallback to nmcli or iw if Termux API isn't configured
-    if not wifi_output:
-        try:
-            res = subprocess.run(["nmcli", "dev", "wifi"], capture_output=True, text=True, timeout=5)
-            wifi_output = res.stdout
-        except Exception:
-            try:
-                res = subprocess.run(["iw", "dev"], capture_output=True, text=True, timeout=5)
-                wifi_output = res.stdout
-            except Exception:
-                pass
-                
-    if wifi_output.strip():
-        print(wifi_output)
-    else:
-        print("[-] Wi-Fi scan returned no data. (Tip: Install 'termux-api' package & app, or run in NetHunter root mode).")
-
-    print("\n" + "=" * 55)
-    print("[*] Scanning nearby Bluetooth devices...")
-    bt_output = ""
-    
-    # Try Termux Bluetooth API
-    try:
-        res = subprocess.run(["termux-bluetooth-devices"], capture_output=True, text=True, timeout=5)
-        if res.returncode == 0 and res.stdout.strip() and "[]" not in res.stdout:
-            bt_output = res.stdout
-    except Exception:
-        pass
-        
-    # Fallback to hcitool if available
-    if not bt_output:
-        try:
-            res = subprocess.run(["hcitool", "scan"], capture_output=True, text=True, timeout=6)
-            bt_output = res.stdout
-        except Exception:
-            pass
-            
-    if bt_output.strip():
-        print(bt_output)
-    else:
-        print("[-] Bluetooth scan returned no data. Ensure Bluetooth is enabled and Termux:API is installed.")
-        
-    log_scan("Wireless & BT Scanner", "Local Airspace", "Executed airspace scan via Termux API/binaries")
-    input("\nPress Enter to return to main menu...")
-
-def handle_subnet_sweep_tool():
-    """Option 2: Whole Subnet Host Sweep (Active Discovery)."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== OPTION 2: WHOLE SUBNET HOST SWEEP ===")
-    print("-" * 55)
-    
-    ips = get_all_device_ips()
-    default_subnet = "192.168.1.0/24"
-    if ips:
-        # Extract subnet from first detected IP CIDR
-        _, ip_cidr = ips[0]
-        default_subnet = get_subnet_range(ip_cidr)
-            subnet = input(f"Enter subnet/CIDR to sweep [default {default_subnet}] (or 'b' to back): ").strip()
-    if subnet.lower() in ["b", "99", "back"]:
-        return
-        
-    target_subnet = subnet if subnet else default_subnet
-    
-    print(f"\n[+] Executing active ping/ARP sweep on host space: {target_subnet}...")
-    print("[*] Please wait while active hosts respond...\n")
-    
-    try:
-        cmd = ["nmap", "-sn", target_subnet]
-        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print(res.stdout)
-        log_scan("Subnet Sweep", target_subnet, res.stdout)
-    except Exception as e:
-        print(f"[-] Subnet sweep failed: {e}")
-        
-    input("\nPress Enter to return to main menu...")
-
+            print("\n[-] Invalid input. Please enter a numeric ID.")
+            input("\nPress Enter to continue...")
