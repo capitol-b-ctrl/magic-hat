@@ -123,10 +123,10 @@ def main():
             clear_screen()
             print("Exiting Magic Hat. Farewell, magician!\n")
             sys.exit(0)
-
         else:
             input("Invalid selection! Press Enter to try again...")
-
+            
+            
 if __name__ == "__main__":
     main()
 

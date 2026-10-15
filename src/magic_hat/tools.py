@@ -1,7 +1,7 @@
 """Nmap penetration testing wrapper and logger for Magic Hat."""
 
 import subprocess
-from magic_hat.database import log_scan, get_scan_logs
+from magic_hat.database import log_scan, get_scan_logs, get_connection
 from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips
 
 
@@ -63,39 +63,50 @@ def handle_nmap_menu():
         print("    Run 'pkg install nmap' in Termux if it's missing.")
     
     input("\nPress Enter to return to the menu...")
-
-def handle_view_logs():
-    """Display past scan logs stored in the database."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    print("=== PAGE: SCAN ARCHIVES (LOGS) ===")
-    print("-" * 45)
     
-    logs = get_scan_logs()
-    if not logs:
-        print("No scan logs found in the archives yet.")
-    else:
-        print(f"{'ID':<4} | {'Tool':<6} | {'Target':<18} | {'Timestamp'}")
+    
+def handle_view_logs():
+    """Display past scan logs stored in the database and view full output."""
+    while True:
+        clear_screen()
+        print(BANNER_IMAGE)
+        print("=== PAGE: SCAN ARCHIVES (LOGS) ===")
         print("-" * 55)
-        for log in logs:
-            print(f"{log.get('id', 0):<4} | {log.get('tool_name', ''):<6} | {log.get('target', ''):<18} | {log.get('timestamp', '')}")
+        
+        logs = get_scan_logs()
+        if not logs:
+            print("No scan logs found in the archives yet.")
+            input("\nPress Enter to return to the main menu...")
+            break
+        else:
+            print(f"{'ID':<4} | {'Tool':<6} | {'Target':<18} | {'Timestamp'}")
+            print("-" * 55)
+            for log in logs:
+                print(f"{log.get('id', 0):<4} | {log.get('tool_name', ''):<6} | {log.get('target', ''):<18} | {log.get('timestamp', '')}")
+                
+            print("-" * 55)
+            view_id = input("Enter log ID to view full output (or press Enter to go back): ").strip()
             
-        view_id = input("\nEnter log ID to view full output (or press Enter to go back): ").strip()
-        if view_id.isdigit():
-            from magic_hat.database import get_connection
-            with get_connection() as conn:
-                cursor = conn.execute("SELECT output FROM scan_logs WHERE id = ?", (view_id,))
-                row = cursor.fetchone()
-                if row:
-                    print("\n" + "=" * 50)
-                    print(row["output"])
-                    print("=" * 50)
-                else:
-                    print("[-] Log ID not found.")
-            input("\nPress Enter to continue...")
-
-
-
-
-
-
+            if not view_id:
+                break
+                
+            if view_id.isdigit():
+                with get_connection() as conn:
+                    cursor = conn.execute("SELECT tool_name, target, timestamp, output FROM scan_logs WHERE id = ?", (view_id,))
+                    row = cursor.fetchone()
+                    if row:
+                        clear_screen()
+                        print(BANNER_IMAGE)
+                        print(f"=== LOG DETAILS [ID: {view_id}] ===")
+                        print(f"[*] Tool:      {row['tool_name']}")
+                        print(f"[*] Target:    {row['target']}")
+                        print(f"[*] Timestamp: {row['timestamp']}")
+                        print("=" * 55)
+                        print(row["output"])
+                        print("=" * 55)
+                    else:
+                        print("\n[-] Error: Log ID not found.")
+                input("\nPress Enter to continue...")
+            else:
+                print("\n[-] Invalid input. Please enter a numeric ID.")
+                input("\nPress Enter to continue...")

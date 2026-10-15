@@ -1,3 +1,5 @@
+python
+
 
 """Database and data handling module for Magic Hat using SQLite."""
 
@@ -86,10 +88,11 @@ def log_scan(tool_name, target, output):
             (tool_name, target, output, timestamp)
         )
         conn.commit()
-        
+
 def get_scan_logs():
-    """Retrieve all past scan logs."""
+    """Retrieve all past scan logs summary with their database IDs."""
     with get_connection() as conn:
-        cursor = conn.execute("SELECT tool_name, target, timestamp FROM scan_logs ORDER BY id DESC")
+        cursor = conn.execute("SELECT id, tool_name, target, timestamp FROM scan_logs ORDER BY id DESC")
         return [dict(row) for row in cursor.fetchall()]
+
 
