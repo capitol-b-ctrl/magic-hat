@@ -579,7 +579,6 @@ def handle_hydra_audit():
         
     input("\nPress Enter to return...")
 
-                                                                                                                            res = subprocess.run(["nmcli", "dev", ""])
 def handle_wireless_bt_scanner():
     """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices using Termux API or binaries."""
     clear_screen()
