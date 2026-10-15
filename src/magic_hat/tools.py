@@ -641,6 +641,7 @@ def handle_wireless_bt_scanner():
         print("[-] Bluetooth scan returned no data. Ensure Bluetooth is enabled and Termux:API is installed.")
         
     log_scan("Wireless & BT Scanner", "Local Airspace", "Executed airspace scan via Termux API/binaries")
+    input("\nPress Enter to return to main menu...")
 
 def handle_subnet_sweep_tool():
     """Option 2: Whole Subnet Host Sweep (Active Discovery)."""
@@ -655,8 +656,7 @@ def handle_subnet_sweep_tool():
         # Extract subnet from first detected IP CIDR
         _, ip_cidr = ips[0]
         default_subnet = get_subnet_range(ip_cidr)
-        
-    subnet = input(f"Enter subnet/CIDR to sweep [default {default_subnet}] (or 'b' to back): ").strip()
+            subnet = input(f"Enter subnet/CIDR to sweep [default {default_subnet}] (or 'b' to back): ").strip()
     if subnet.lower() in ["b", "99", "back"]:
         return
         
