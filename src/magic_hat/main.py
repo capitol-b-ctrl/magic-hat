@@ -4,7 +4,7 @@
 import sys
 from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips
 from magic_hat.database import save_item, get_all_items, search_items, calculate_budget
-from magic_hat.tools import handle_nmap_menu, handle_view_logs
+from magic_hat.tools import handle_pentest_suite_menu, handle_view_logs
 
 
 def handle_add():
@@ -100,7 +100,7 @@ def main():
         print("2. List all items in the Hat")
         print("3. Search for an item")
         print("4. Show total acquisition budget")
-        print("5. Run Nmap Recon")
+        print("5. Offensive Security Suite (Tools)")
         print("6. View Scan Archives (Logs)")
         print("7. Exit")
         print("---------------------------------------------")
@@ -116,7 +116,7 @@ def main():
         elif choice == "4":
             handle_budget()
         elif choice == "5":
-            handle_nmap_menu()
+            handle_pentest_suite_menu()
         elif choice == "6":
             handle_view_logs()
         elif choice == "7":

@@ -1,4 +1,4 @@
-"""Nmap penetration testing wrapper and logger for Magic Hat."""
+"""Offensive security tool execution handlers and loggers for Magic Hat."""
 
 import subprocess
 import re
@@ -8,7 +8,6 @@ from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips
 def parse_open_ports(nmap_output):
     """Extract open ports and services from Nmap stdout using regex."""
     open_ports = []
-    # Matches lines like: 22/tcp open  ssh  or  80/tcp open  http-proxy
     pattern = re.compile(r"^(\d+/(?:tcp|udp))\s+open\s+([^\n]+)", re.MULTILINE)
     matches = pattern.findall(nmap_output)
     for port_proto, service in matches:
@@ -52,14 +51,13 @@ def handle_nmap_menu():
         flags = custom.split()
     
     print(f"\n[+] Conjuring Nmap scan on {target} with flags: {' '.join(flags)}...")
-    print("[*] Scanning in progress (this may take a moment)...")
+    print("[*] Scanning in progress...")
     
     try:
         cmd = ["nmap"] + flags + [target]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
-        # Parse out open ports for a clean summary table
         open_ports = parse_open_ports(output)
         
         clear_screen()
@@ -78,28 +76,234 @@ def handle_nmap_menu():
             
         print("=" * 55)
         
-        # Ask if user wants to see the full raw nmap text dump
-        show_raw = input("\nWould you like to view the full raw Nmap text dump? (y/N): ").strip().lower()
-        if show_raw == 'y':
-            clear_screen()
-            print(BANNER_IMAGE)
-            print("=== RAW NMAP OUTPUT ===")
-            print(output)
-            print("=" * 55)
-        
-        # Automatically log the full output to SQLite database
         log_scan("Nmap", target, output)
-        print("\n[✔] Scan results and telemetry successfully logged to database.")
+        print("\n[✔] Scan results successfully logged to database.")
         
     except subprocess.CalledProcessError as e:
         error_output = e.stderr or str(e)
-        print(f"\n[-] Nmap execution failed:\n{error_output}")
+        print(f"\n[-] Nmap failed:\n{error_output}")
         log_scan("Nmap", target, f"ERROR: {error_output}")
     except FileNotFoundError:
-        print("\n[-] Error: 'nmap' binary not found in your PATH.")
-        print("    Run 'pkg install nmap' in Termux if it's missing.")
+        print("\n[-] Error: 'nmap' binary not found. Run 'pkg install nmap'.")
     
-    input("\nPress Enter to return to the menu...")
+    input("\nPress Enter to return...")
+
+def handle_net_shark():
+    """Tool 2: Net Shark (tshark packet capture wrapper)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: NET SHARK (PACKET CAPTURE) ===")
+    
+    ips = get_all_device_ips()
+    print("[*] Available Interfaces:")
+    for iface, ip in ips:
+        print(f"    - {iface} ({ip})")
+    print("-" * 45)
+    
+    interface = input("Enter interface to sniff (e.g., wlan0, rmnet0): ").strip()
+    if not interface:
+        interface = "wlan0"
+        
+    count = input("Enter packet count limit (default 20): ").strip()
+    if not count.isdigit():
+        count = "20"
+        
+    print(f"\n[+] Initializing Net Shark on {interface} (capturing {count} packets)...")
+    print("[*] Press Ctrl+C if you need to abort early.")
+    
+    try:
+        cmd = ["tshark", "-i", interface, "-c", count]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== NET SHARK CAPTURE: {interface} ===")
+        print("=" * 55)
+        print(output[:3000]) # Print first 3000 chars to fit screen
+        print("=" * 55)
+        
+        log_scan("Net Shark", interface, output)
+        print("\n[✔] Packet capture successfully logged to database.")
+        
+    except subprocess.CalledProcessError as e:
+        error_output = e.stderr or str(e)
+        print(f"\n[-] Tshark failed: {error_output}")
+        log_scan("Net Shark", interface, f"ERROR: {error_output}")
+    except FileNotFoundError:
+        print("\n[-] Error: 'tshark' binary not found. Run 'pkg install tshark'.")
+        
+    input("\nPress Enter to return...")
+
+def handle_web_fuzzer():
+    """Tool 3: Web Directory Fuzzer (ffuf wrapper)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: WEB DIR FUZZER (FFUF) ===")
+    print("-" * 45)
+    
+    url = input("Enter target URL (e.g., http://10.0.0.1/FUZZ): ").strip()
+    if not url:
+        input("\n[-] URL cannot be empty. Press Enter...")
+        return
+        
+    if "FUZZ" not in url:
+        print("\n[!] Note: 'FUZZ' keyword missing in URL. Appending '/FUZZ'.")
+        url = url.rstrip("/") + "/FUZZ"
+        
+    wordlist = input("Enter wordlist path (default: common.txt or wordlist path): ").strip()
+    if not wordlist:
+        # Common Termux or standard wordlist fallback location
+        wordlist = "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt"
+        
+    print(f"\n[+] Launching FFUF fuzzer against {url}...")
+    
+    try:
+        cmd = ["ffuf", "-u", url, "-w", wordlist, "-s"] # -s for silent/clean output
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print("=== FFUF DISCOVERY RESULTS ===")
+        print("=" * 55)
+        print(output if output else "[*] Scan completed, but no standard output captured.")
+        print("=" * 55)
+        
+        log_scan("Web Fuzzer", url, output)
+        print("\n[✔] Web fuzzing results successfully logged to database.")
+        
+    except subprocess.CalledProcessError as e:
+        error_output = e.stderr or str(e)
+        print(f"\n[-] FFUF failed: {error_output}")
+        log_scan("Web Fuzzer", url, f"ERROR: {error_output}")
+    except FileNotFoundError:
+        print("\n[-] Error: 'ffuf' binary not found. Run 'pkg install ffuf'.")
+        
+    input("\nPress Enter to return...")
+
+def handle_dns_recon():
+    """Tool 4: DNS Recon (dig wrapper)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: DNS FOOTPRINTING (DIG) ===")
+    print("-" * 45)
+    
+    domain = input("Enter target domain or hostname (e.g., example.com): ").strip()
+    if not domain:
+        input("\n[-] Domain cannot be empty. Press Enter...")
+        return
+        
+    print("\nSelect Record Query Type:")
+    print("1. Standard Query (A, MX, NS)")
+    print("2. All Records (ANY)")
+    print("3. Zone Transfer Attempt (AXFR)")
+    
+    choice = input("Select query type [1-3]: ").strip()
+    qtype = ""
+    if choice == "2":
+        qtype = "ANY"
+    elif choice == "3":
+        qtype = "AXFR"
+        
+    print(f"\n[+] Querying DNS records for {domain}...")
+    
+    try:
+        cmd = ["dig", domain]
+        if qtype:
+            cmd.append(qtype)
+            
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== DNS RESULTS: {domain} ===")
+        print("=" * 55)
+        print(output)
+        print("=" * 55)
+        
+        log_scan("DNS Recon", domain, output)
+        print("\n[✔] DNS footprint logged to database.")
+        
+    except subprocess.CalledProcessError as e:
+        error_output = e.stderr or str(e)
+        print(f"\n[-] Dig failed: {error_output}")
+        log_scan("DNS Recon", domain, f"ERROR: {error_output}")
+    except FileNotFoundError:
+        print("\n[-] Error: 'dig' binary not found. Run 'pkg install dnsutils'.")
+        
+    input("\nPress Enter to return...")
+
+def handle_tech_fingerprint():
+    """Tool 5: Web Tech Fingerprinting (whatweb wrapper)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: WEB TECH FINGERPRINT (WHATWEB) ===")
+    print("-" * 45)
+    
+    target = input("Enter target URL or IP (e.g., http://example.com): ").strip()
+    if not target:
+        input("\n[-] Target cannot be empty. Press Enter...")
+        return
+        
+    print(f"\n[+] Fingerprinting technology stack for {target}...")
+    
+    try:
+        cmd = ["whatweb", target]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== TECH STACK REPORT: {target} ===")
+        print("=" * 55)
+        print(output)
+        print("=" * 55)
+        
+        log_scan("Tech Fingerprint", target, output)
+        print("\n[✔] Fingerprint results logged to database.")
+        
+    except subprocess.CalledProcessError as e:
+        error_output = e.stderr or str(e)
+        print(f"\n[-] WhatWeb failed: {error_output}")
+        log_scan("Tech Fingerprint", target, f"ERROR: {error_output}")
+    except FileNotFoundError:
+        print("\n[-] Error: 'whatweb' binary not found. Ensure it is installed in Termux.")
+        
+    input("\nPress Enter to return...")
+
+def handle_pentest_suite_menu():
+    """Parent menu for all offensive security modules."""
+    while True:
+        clear_screen()
+        print(BANNER_IMAGE)
+        print("=== OFFENSIVE SECURITY SUITE ===")
+        print("---------------------------------------------")
+        print("1. Nmap Recon Suite")
+        print("2. Net Shark (Packet Capture / tshark)")
+        print("3. Web Directory Fuzzer (ffuf)")
+        print("4. DNS Footprinting (dig)")
+        print("5. Web Tech Fingerprint (whatweb)")
+        print("6. Return to Main Menu")
+        print("---------------------------------------------")
+        
+        choice = input("Select security tool [1-6]: ").strip()
+        
+        if choice == "1":
+            handle_nmap_menu()
+        elif choice == "2":
+            handle_net_shark()
+        elif choice == "3":
+            handle_web_fuzzer()
+        elif choice == "4":
+            handle_dns_recon()
+        elif choice == "5":
+            handle_tech_fingerprint()
+        elif choice == "6":
+            break
+        else:
+            input("Invalid choice! Press Enter to try again...")
 
 def handle_view_logs():
     """Display past scan logs stored in the database and view full output."""
@@ -115,12 +319,12 @@ def handle_view_logs():
             input("\nPress Enter to return to the main menu...")
             break
         else:
-            print(f"{'ID':<4} | {'Tool':<6} | {'Target':<18} | {'Timestamp'}")
-            print("-" * 55)
+            print(f"{'ID':<4} | {'Tool':<16} | {'Target':<16} | {'Timestamp'}")
+            print("-" * 65)
             for log in logs:
-                print(f"{log.get('id', 0):<4} | {log.get('tool_name', ''):<6} | {log.get('target', ''):<18} | {log.get('timestamp', '')}")
+                print(f"{log.get('id', 0):<4} | {log.get('tool_name', ''):<16} | {log.get('target', ''):<16} | {log.get('timestamp', '')}")
                 
-            print("-" * 55)
+            print("-" * 65)
             view_id = input("Enter log ID to view full output (or press Enter to go back): ").strip()
             
             if not view_id:
@@ -138,15 +342,6 @@ def handle_view_logs():
                         print(f"[*] Target:    {row['target']}")
                         print(f"[*] Timestamp: {row['timestamp']}")
                         print("=" * 55)
-                        
-                        # Show parsed summary or raw
-                        ports = parse_open_ports(row["output"])
-                        if ports:
-                            print(f"[+] EXTRACTED OPEN PORTS ({len(ports)}):")
-                            for p in ports:
-                                print(f"    - {p['port']}: {p['service']}")
-                            print("-" * 55)
-                            
                         print(row["output"])
                         print("=" * 55)
                     else:
@@ -155,5 +350,3 @@ def handle_view_logs():
             else:
                 print("\n[-] Invalid input. Please enter a numeric ID.")
                 input("\nPress Enter to continue...")
-                
-                
