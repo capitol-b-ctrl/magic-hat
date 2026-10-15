@@ -70,7 +70,6 @@ Usage Guide
 
 ## 📂 Project Structure
 
-```text
 Magic_Hat/
 ├── .venv/                  # Isolated virtual environment (ignored by Git)
 ├── .gitignore              # Tells Git which files to ignore
@@ -78,12 +77,20 @@ Magic_Hat/
 ├── pyproject.toml          # Modern central configuration for tools & dependencies
 ├── src/                    # Source code layout
 │   └── magic_hat/          # Primary application package
-│       ├── __init__.py     # Marks directory as an importable package
-|		|── magic-hat.db    # Sqlite Database file for memory persistance
-│       ├── magic-hat.py    # Primary entry point script
-│       ├── database.py     # Sub-module for data handling
-│       └── utils.py        # Sub-module for helper functions
-└── tests/                  # Mirror of src/ used for automated testing
-    ├── __init__.py
-    └── test_database.py    # Unit tests targeting database logic
+│       ├── __init__.py
+│       ├── main.py       # Main CLI loop, banner, and interface routing
+│       ├── database.py   # SQLite schema and telemetry logging
+│       ├── tools.py      # Offensive security tool wrappers & regex parsers
+│       ├── reports.py    # Automated Markdown engagement report generator
+│       ├── pipeline.py   # Automated multi-tool recon execution chain
+│       ├── server.py     # Local Flask web dashboard and API server
+│       ├── utils.py      # System helpers, dynamic IP detection, and webhooks
+│       ├── data/         # Local enclosed database directory
+│       │   └── magic_hat.db
+│       └── reports/      # Local enclosed Markdown engagement reports
+├── tests/                  # Mirror of src/ used for automated testing
+│   ├── __init__.py
+│   └── test_database.py    # Unit tests targeting database │
+└── setup.py                # Package installation script
+ 
 

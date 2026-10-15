@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 """Main entry point and interactive menu layout for Magic Hat."""
 
 import sys
@@ -7,7 +6,6 @@ from magic_hat.database import save_item, get_all_items, search_items, calculate
 from magic_hat.tools import handle_pentest_suite_menu, handle_view_logs
 from magic_hat.pipeline import run_autopilot_pipeline
 from magic_hat.server import run_web_server
-
 
 def handle_add():
     """Page 1: Add a new prop or item."""
@@ -25,9 +23,9 @@ def handle_add():
     save_item(name, price, supplier)
     
     print("\n[✔] Conjuring item into the Hat...")
-    print(f"[*] Name:      {name}")
-    print(f"[*] Price:     ${price:.2f}")
-    print(f"[*] Supplier:  {supplier}")
+    print(f"[*] Name:     {name}")
+    print(f"[*] Price:    ${price:.2f}")
+    print(f"[*] Supplier: {supplier}")
     
     input("\nPress Enter to return to the main menu...")
 
@@ -36,9 +34,9 @@ def handle_list():
     clear_screen()
     print(BANNER_IMAGE)
     print("=== PAGE: INVENTORY LIST ===")
-    print("[📋] Inspecting the contents of the Hat...")
+    print("[*] Inspecting the contents of the Hat...")
     print("-" * 45)
-    print("Price | Supplier | Item")
+    print(f"{'Price':<10} | {'Supplier':<15} | {'Item'}")
     print("-" * 45)
     
     items = get_all_items()
@@ -46,8 +44,8 @@ def handle_list():
         print("No items found in the Hat yet. Try adding one!")
     else:
         for item in items:
-            print(f"${item.get('price', 0):.2f} | {item.get('supplier', 'Unknown')} | {item.get('name', '')}")
-    
+            print(f"${item.get('price', 0):.2f} | {item.get('supplier', 'Unknown'):<15} | {item.get('name', '')}")
+            
     input("\nPress Enter to return to the main menu...")
 
 def handle_search():
@@ -58,28 +56,26 @@ def handle_search():
     print("-" * 45)
     
     query = input("Enter search keyword: ").strip()
-    print(f"\n[🔍] Searching the magical archives for '{query}'...")
+    print(f"\n[🔬] Searching the magical archives for '{query}'...")
     results = search_items(query)
     
     if not results:
         print("No matching items found.")
     else:
         print(f"\nFound {len(results)} matching item(s):")
-        print("-" * 45)
-        print("Price | Supplier | Item")
+        print(f"{'Price':<10} | {'Supplier':<15} | {'Item'}")
         print("-" * 45)
         for item in results:
-            print(f"${item.get('price', 0):.2f} | {item.get('supplier', 'Unknown')} | {item.get('name', '')}")
-    
+            print(f"${item.get('price', 0):.2f} | {item.get('supplier', 'Unknown'):<15} | {item.get('name', '')}")
+            
     input("\nPress Enter to return to the main menu...")
-
 
 def handle_budget():
     """Page 4: Budget summary."""
     clear_screen()
     print(BANNER_IMAGE)
     print("=== PAGE: BUDGET OVERVIEW ===")
-    print("[💰] Calculating total spell components budget...")
+    print("[🧮] Calculating total spell components budget...")
     total = calculate_budget()
     print(f"[*] Total Acquisition Cost: ${total:.2f}")
     
@@ -91,12 +87,12 @@ def main():
         clear_screen()
         print(BANNER_IMAGE)
         
-        # Display all active interfaces and IPs
         ips = get_all_device_ips()
         ip_str = " | ".join([f"{iface}: {ip}" for iface, ip in ips])
         print(f"[*] Interfaces -> {ip_str}")
         
-                print("MAIN MENU")
+        print("---------------------------------------------")
+        print("MAIN MENU")
         print("---------------------------------------------")
         print("1. Add a new prop or item")
         print("2. List all items in the Hat")
@@ -134,9 +130,5 @@ def main():
         else:
             input("Invalid selection! Press Enter to try again...")
 
-            
-            
 if __name__ == "__main__":
     main()
-
-...

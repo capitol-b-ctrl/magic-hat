@@ -536,6 +536,9 @@ def handle_exploit_search():
         
         log_scan("Exploit Search", query, output)
         print("\n[✔] Exploit search results logged to database.")
+    except FileNotFoundError:
+        print("\n[-] Error: 'searchsploit' binary not found.")
+        print("    Run 'pkg install exploitdb' or access via your Kali NetHunter chroot.")
     except Exception as e:
         print(f"[-] Searchsploit failed: {e}")
         

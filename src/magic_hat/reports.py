@@ -5,7 +5,9 @@ from datetime import datetime
 from magic_hat.database import get_scan_logs, get_connection
 from magic_hat.utils import BANNER_IMAGE, clear_screen
 
-REPORTS_DIR = os.path.expanduser("~/magic_hat_reports")
+# Anchor reports locally inside the package directory
+PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
+REPORTS_DIR = os.path.join(PACKAGE_DIR, "reports")
 
 def export_scan_report(log_id=None):
     """Export a specific scan log or all logs into a formatted Markdown report."""
@@ -30,7 +32,6 @@ def export_scan_report(log_id=None):
         
     filepath = os.path.join(REPORTS_DIR, filename)
     
-    # Build report lines to avoid multi-line quote conflicts
     lines = []
     lines.append("# Magic Hat Intelligence Report")
     lines.append(f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
