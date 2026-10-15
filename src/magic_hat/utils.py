@@ -4,6 +4,9 @@
 import socket
 import subprocess
 import re
+import urllib.request
+import json
+import os
 
 BANNER_IMAGE = r"""
 
@@ -79,3 +82,33 @@ def get_all_device_ips():
             interfaces.append(("unknown", "127.0.0.1"))
             
     return interfaces
+
+# Optional config file for webhooks
+WEBHOOK_CONFIG_PATH = os.path.expanduser("~/.magic_hat_webhook.json")
+
+def send_webhook_notification(title, message):
+    """Send a notification payload to a configured webhook endpoint."""
+    if not os.path.exists(WEBHOOK_CONFIG_PATH):
+        return
+    
+    try:
+        with open(WEBHOOK_CONFIG_PATH, "r") as f:
+            config = json.load(f)
+            webhook_url = config.get("url")
+            
+        if not webhook_url:
+            return
+            
+        payload = {
+            "content": f"🎩 **Magic Hat Alert**\n**{title}**\n```{message}```"
+        }
+        
+        req = urllib.request.Request(
+            webhook_url,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"}
+        )
+        urllib.request.urlopen(req, timeout=5)
+    except Exception:
+        # Fail silently so local CLI execution isn't blocked by network errors
+        pass

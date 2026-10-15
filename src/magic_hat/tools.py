@@ -3,7 +3,7 @@
 import subprocess
 import re
 from magic_hat.database import log_scan, get_scan_logs, get_connection
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, send_webhook_notification
 
 def parse_open_ports(nmap_output):
     """Extract open ports and services from Nmap stdout using regex."""
@@ -282,13 +282,17 @@ def handle_pentest_suite_menu():
         print("---------------------------------------------")
         print("1. Nmap Recon Suite")
         print("2. Net Shark (Packet Capture / tshark)")
-        print("3. Web Directory Fuzzer (ffuf)")
+        print("3. Web Directory Fuzzer (ffuf / gobuster)")
         print("4. DNS Footprinting (dig)")
         print("5. Web Tech Fingerprint (whatweb)")
-        print("6. Return to Main Menu")
+        print("6. Subnet & ARP Discovery")
+        print("7. Wireless & RF Footprinting")
+        print("8. Hash Identifier & Audit Engine")
+        print("9. Automated Report Generator")
+        print("10. Return to Main Menu")
         print("---------------------------------------------")
         
-        choice = input("Select security tool [1-6]: ").strip()
+        choice = input("Select module [1-10]: ").strip()
         
         if choice == "1":
             handle_nmap_menu()
@@ -301,6 +305,15 @@ def handle_pentest_suite_menu():
         elif choice == "5":
             handle_tech_fingerprint()
         elif choice == "6":
+            handle_subnet_sweep()
+        elif choice == "7":
+            handle_wireless_recon()
+        elif choice == "8":
+            handle_hash_identifier()
+        elif choice == "9":
+            from magic_hat.reports import handle_report_menu
+            handle_report_menu()
+        elif choice == "10":
             break
         else:
             input("Invalid choice! Press Enter to try again...")
@@ -350,3 +363,143 @@ def handle_view_logs():
             else:
                 print("\n[-] Invalid input. Please enter a numeric ID.")
                 input("\nPress Enter to continue...")
+
+def handle_subnet_sweep():
+    """Tool 6: Local Subnet Discovery & ARP Sweeping."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: SUBNET & ARP DISCOVERY ===")
+    
+    ips = get_all_device_ips()
+    print("[*] Active Interface IPs:")
+    for iface, ip in ips:
+        print(f"    - {iface}: {ip}")
+    print("-" * 45)
+    
+    subnet = input("Enter target CIDR or interface subnet (e.g., 192.168.1.0/24): ").strip()
+    if not subnet:
+        input("\n[-] Subnet cannot be empty. Press Enter...")
+        return
+        
+    print(f"\n[+] Sweeping subnet {subnet} for live hosts...")
+    
+    try:
+        # Try arp-scan first, fallback to nmap ping sweep if unavailable
+        cmd = ["arp-scan", "--localnet"] if "/" not in subnet else ["nmap", "-sn", subnet]
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== LIVE HOST DISCOVERY: {subnet} ===")
+        print("=" * 55)
+        print(output)
+        print("=" * 55)
+        
+        log_scan("Subnet Sweep", subnet, output)
+        send_webhook_notification("Subnet Sweep Complete", f"Discovered live hosts on {subnet}")
+        print("\n[✔] Sweep results logged and webhook triggered.")
+        
+    except subprocess.CalledProcessError as e:
+        error_output = e.stderr or str(e)
+        print(f"\n[-] Sweep failed: {error_output}")
+        log_scan("Subnet Sweep", subnet, f"ERROR: {error_output}")
+    except FileNotFoundError:
+        print("\n[-] Error: 'arp-scan' or 'nmap' not found in path.")
+        
+    input("\nPress Enter to return...")
+
+def handle_wireless_recon():
+    """Tool 7: Wireless & RF Footprinting Wrapper."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: WIRELESS & RF FOOTPRINTING ===")
+    print("-" * 45)
+    print("1. List Wireless Interfaces & Status (iw dev / nmcli)")
+    print("2. Scan Nearby Wi-Fi Networks (nmcli device wifi list)")
+    print("3. Return")
+    print("-" * 45)
+    
+    choice = input("Select option [1-3]: ").strip()
+    if choice == "1":
+        cmd = ["iw", "dev"]
+    elif choice == "2":
+        cmd = ["nmcli", "device", "wifi", "list"]
+    else:
+        return
+        
+    print("\n[+] Querying wireless subsystem...")
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print("=== WIRELESS RECON REPORT ===")
+        print("=" * 55)
+        print(output)
+        print("=" * 55)
+        
+        log_scan("Wireless Recon", "Local RF", output)
+        print("\n[✔] Wireless telemetry logged to database.")
+    except Exception as e:
+        print(f"\n[-] Wireless command failed: {e}")
+        
+    input("\nPress Enter to return...")
+
+def handle_hash_identifier():
+    """Tool 8: Hash Identification & Cracking Assistant."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: HASH IDENTIFIER & AUDIT ===")
+    print("-" * 45)
+    
+    hash_str = input("Enter hash string to analyze: ").strip()
+    if not hash_str:
+        input("\n[-] Hash cannot be empty. Press Enter...")
+        return
+        
+    # Regex-based heuristic hash identification
+    identified = []
+    length = len(hash_str)
+    
+    if length == 32 and re.match(r"^[a-fA-F0-9]{32}$", hash_str):
+        identified.append("MD5 / NTLM / MD4")
+    elif length == 40 and re.match(r"^[a-fA-F0-9]{40}$", hash_str):
+        identified.append("SHA-1 / MySQL5.x")
+    elif length == 64 and re.match(r"^[a-fA-F0-9]{64}$", hash_str):
+        identified.append("SHA-256 / WPA-PSK PMK")
+    elif hash_str.startswith("$2a$") or hash_str.startswith("$2b$") or hash_str.startswith("$2y$"):
+        identified.append("Bcrypt (Blowfish)")
+    elif hash_str.startswith("$6$"):
+        identified.append("SHA-512 Crypt (Linux)")
+    else:
+        identified.append("Unknown or complex hash format")
+        
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== HASH ANALYSIS RESULTS ===")
+    print("=" * 55)
+    print(f"[*] Input Hash: {hash_str}")
+    print(f"[*] Length:     {length} characters")
+    print(f"[+] Potential Formats:")
+    for fmt in identified:
+        print(f"    - {fmt}")
+    print("=" * 55)
+    
+    run_crack = input("\nWould you like to invoke hashcat against this hash? (y/N): ").strip().lower()
+    if run_crack == 'y':
+        mode = input("Enter hashcat mode number (e.g., 0 for MD5, 1000 for NTLM): ").strip()
+        wordlist = input("Enter wordlist path: ").strip()
+        
+        print(f"\n[+] Launching hashcat audit...")
+        try:
+            # Hashcat command execution wrapper
+            cmd = ["hashcat", "-m", mode, hash_str, wordlist]
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print(result.stdout)
+            log_scan("Hash Audit", hash_str, result.stdout)
+        except Exception as e:
+            print(f"[-] Hashcat execution failed: {e}")
+            
+    input("\nPress Enter to return...")
