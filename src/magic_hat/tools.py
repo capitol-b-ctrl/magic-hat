@@ -579,34 +579,68 @@ def handle_hydra_audit():
         
     input("\nPress Enter to return...")
 
+                                                                                                                            res = subprocess.run(["nmcli", "dev", ""])
 def handle_wireless_bt_scanner():
-    """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices."""
+    """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices using Termux API or binaries."""
     clear_screen()
     print(BANNER_IMAGE)
     print("=== OPTION 1: WIRELESS & BLUETOOTH AIRSPACE SCAN ===")
     print("-" * 55)
     
-    print("[*] Scanning nearby Wi-Fi access points (nmcli / iw)...")
+    print("[*] Scanning nearby Wi-Fi access points...")
+    wifi_output = ""
+    
+    # Try Termux API first (best for non-rooted Android/Termux)
     try:
-        wifi_res = subprocess.run(["nmcli", "dev", "wifi"], capture_output=True, text=True)
-        if wifi_res.stdout.strip():
-            print(wifi_res.stdout)
-        else:
-            iw_res = subprocess.run(["iw", "dev"], capture_output=True, text=True)
-            print(iw_res.stdout if iw_res.stdout.strip() else "[-] Wi-Fi scan requires root/NetHunter privileges or active interface.")
-    except Exception as e:
-        print(f"[-] Wi-Fi scan skipped/failed: {e}")
+        res = subprocess.run(["termux-wifi-scaninfo"], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0 and res.stdout.strip() and "[]" not in res.stdout:
+            wifi_output = res.stdout
+    except Exception:
+        pass
+        
+    # Fallback to nmcli or iw if Termux API isn't configured
+    if not wifi_output:
+        try:
+            res = subprocess.run(["nmcli", "dev", "wifi"], capture_output=True, text=True, timeout=5)
+            wifi_output = res.stdout
+        except Exception:
+            try:
+                res = subprocess.run(["iw", "dev"], capture_output=True, text=True, timeout=5)
+                wifi_output = res.stdout
+            except Exception:
+                pass
+                
+    if wifi_output.strip():
+        print(wifi_output)
+    else:
+        print("[-] Wi-Fi scan returned no data. (Tip: Install 'termux-api' package & app, or run in NetHunter root mode).")
 
     print("\n" + "=" * 55)
-    print("[*] Scanning nearby Bluetooth devices (hcitool / bluetoothctl)...")
+    print("[*] Scanning nearby Bluetooth devices...")
+    bt_output = ""
+    
+    # Try Termux Bluetooth API
     try:
-        bt_res = subprocess.run(["hcitool", "scan"], capture_output=True, text=True, timeout=8)
-        print(bt_res.stdout if bt_res.stdout.strip() else "[-] No hcitool devices found or service inactive.")
-    except Exception as e:
-        print(f"[-] Bluetooth scan skipped/failed: {e}")
+        res = subprocess.run(["termux-bluetooth-devices"], capture_output=True, text=True, timeout=5)
+        if res.returncode == 0 and res.stdout.strip() and "[]" not in res.stdout:
+            bt_output = res.stdout
+    except Exception:
+        pass
         
-    log_scan("Wireless & BT Scanner", "Local Airspace", "Scanned local Wi-Fi and Bluetooth environment")
-    input("\nPress Enter to return to main menu...")
+    # Fallback to hcitool if available
+    if not bt_output:
+        try:
+            res = subprocess.run(["hcitool", "scan"], capture_output=True, text=True, timeout=6)
+            bt_output = res.stdout
+        except Exception:
+            pass
+            
+    if bt_output.strip():
+        print(bt_output)
+    else:
+        print("[-] Bluetooth scan returned no data. Ensure Bluetooth is enabled and Termux:API is installed.")
+        
+    log_scan("Wireless & BT Scanner", "Local Airspace", "Executed airspace scan via Termux API/binaries")
 
 def handle_subnet_sweep_tool():
     """Option 2: Whole Subnet Host Sweep (Active Discovery)."""
