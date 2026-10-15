@@ -1,4 +1,4 @@
-u# Magic Hat 🎩✨
+## Magic Hat 🎩✨
 
 ​Magic Hat is an interactive command-line interface (CLI) tool built for Android/Termux environments. It combines a local item/budget inventory manager with a powerful penetration testing recon suite—complete with real-time network interface monitoring and automatic SQLite database logging.
 ​Features
@@ -77,25 +77,42 @@ Main Menu Options
 ​3. Search for an item: Query your local inventory archives by keyword.
 ​4. Show total acquisition budget: Calculate the total aggregate cost of all stored inventory components.
 ​5. Offensive Security Suite (Tools): Open the secondary security submenu containing 10 modular offensive tools:
+
     ​•Nmap Recon Suite (Quick, Version, Full Sweep, Custom flags with regex parsing)
+
     ​•Net Shark (tshark packet capture wrapper)
+
     ​•Web Directory Fuzzer (ffuf / gobuster)
+
     ​•DNS Footprinting (dig records & zone transfers)
+
     ​•Web Tech Fingerprint (whatweb)
+
     ​•Subnet & ARP Discovery
+
     ​•Wireless & RF Footprinting (iw / nmcli)
+
     ​•Hash Identifier & Audit Engine (hashcat assistant)
+
     ​•Exploit Search Engine (searchsploit)
+
     ​•Credential Auditor (hydra)
+
     ​•Automated Report Generator (Compile logs to Markdown)
+
 ​6. Auto-Pilot Recon Pipeline: Execute an automated chain that runs a version scan, tech fingerprinting, and compiles a complete report automatically.
+
 ​7. Launch Local Web Dashboard (Server): Spin up a self-hosted Flask web interface at http://127.0.0.1:8080 to view your telemetry live in any browser.
+
 ​8. View Scan Archives (Logs): Browse historical scan logs, inspect past targets, and read full terminal outputs by numeric ID.
+
 ​9. Exit: Safely shut down the session.
 
 Pro-Tips for Field Operations
-      ●​Automated Reports: Whenever you run tool scans, you can export them directly into clean Markdown files located in your local src/magic_hat/reports/ folder.
-      ●​Database Telemetry: All scan results and inventory data are safely enclosed inside src/magic_hat/data/magic_hat.db.
+
+      ●​**Automated Reports:** Whenever you run tool scans, you can export them directly into clean Markdown files located in your local src/magic_hat/reports/ folder.
+
+      ●**Database Telemetry:** All scan results and inventory data are safely enclosed inside src/magic_hat/data/magic_hat.db.
 
 
 ## 📂 Project Structure
