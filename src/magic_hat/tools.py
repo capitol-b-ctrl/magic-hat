@@ -89,7 +89,7 @@ def handle_nmap_menu():
     input("\nPress Enter to return...")
 
 def handle_net_shark():
-    """Tool 2: Net Shark (tshark packet capture wrapper)."""
+    """Tool 2: Net Shark (Packet Capture / tshark)."""
     clear_screen()
     print(BANNER_IMAGE)
     print("=== PAGE: NET SHARK (PACKET CAPTURE) ===")
@@ -100,40 +100,39 @@ def handle_net_shark():
         print(f"    - {iface} ({ip})")
     print("-" * 45)
     
-    interface = input("Enter interface to sniff (e.g., wlan0, rmnet0): ").strip()
-    if not interface:
-        interface = "wlan0"
+    iface = input("Enter interface to sniff (e.g., wlan0, rmnet0): ").strip()
+    if not iface:
+        return
         
-    count = input("Enter packet count limit (default 20): ").strip()
-    if not count.isdigit():
-        count = "20"
-        
-    print(f"\n[+] Initializing Net Shark on {interface} (capturing {count} packets)...")
-    print("[*] Press Ctrl+C if you need to abort early.")
+    count = input("Enter packet count limit (default 20): ").strip() or "20"
+    
+    print(f"\n[+] Initializing Net Shark on {iface} (capturing {count} packets)...")
+    print("[*] Press Ctrl+C if you need to abort early.\n")
     
     try:
-        cmd = ["tshark", "-i", interface, "-c", count]
+        cmd = ["tshark", "-i", iface, "-c", str(count)]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
         print(BANNER_IMAGE)
-        print(f"=== NET SHARK CAPTURE: {interface} ===")
+        print(f"=== PACKET CAPTURE RESULTS: {iface} ===")
         print("=" * 55)
-        print(output[:3000]) # Print first 3000 chars to fit screen
+        print(output)
         print("=" * 55)
         
-        log_scan("Net Shark", interface, output)
-        print("\n[✔] Packet capture successfully logged to database.")
-        
+        log_scan("Net Shark", iface, output)
+        print("\n[✔] Packet capture logged to database.")
     except subprocess.CalledProcessError as e:
         error_output = e.stderr or str(e)
-        print(f"\n[-] Tshark failed: {error_output}")
-        log_scan("Net Shark", interface, f"ERROR: {error_output}")
+        print(f"\n[-] Tshark capture failed: {error_output}")
+        print("[-] Note: Sniffing cellular interfaces (like rmnet0) usually requires root/NetHunter privileges.")
+        log_scan("Net Shark", iface, f"ERROR: {error_output}")
     except FileNotFoundError:
-        print("\n[-] Error: 'tshark' binary not found. Run 'pkg install tshark'.")
+        print("\n[-] Error: 'tshark' not found in path.")
         
     input("\nPress Enter to return...")
+
 
 def handle_web_fuzzer():
     """Tool 3: Web Directory Fuzzer (ffuf wrapper)."""

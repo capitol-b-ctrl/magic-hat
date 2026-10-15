@@ -11,32 +11,35 @@ os.makedirs(DATA_DIR, exist_ok=True)
 DB_PATH = os.path.join(DATA_DIR, "magic_hat.db")
 
 def get_connection():
-    """Create and return a SQLite database connection with row factory."""
+    """Create and return a SQLite database connection with row factory and auto-table creation."""
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
+    
+    # Auto-initialize tables on every connection to prevent 'no such table' errors
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS items (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            price REAL NOT NULL,
+            supplier TEXT
+        )
+    """)
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS scan_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tool_name TEXT NOT NULL,
+            target TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            output TEXT NOT NULL
+        )
+    """)
+    conn.commit()
     return conn
 
 def init_db():
-    """Initialize SQLite tables for inventory and scan log telemetry."""
-    with get_connection() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS items (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                name TEXT NOT NULL,
-                price REAL NOT NULL,
-                supplier TEXT
-            )
-        """)
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS scan_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tool_name TEXT NOT NULL,
-                target TEXT NOT NULL,
-                timestamp TEXT NOT NULL,
-                output TEXT NOT NULL
-            )
-        """)
-        conn.commit()
+    """Explicit database initialization helper."""
+    with get_connection():
+        pass
 
 def save_item(name, price, supplier):
     """Save an inventory item to the database."""
