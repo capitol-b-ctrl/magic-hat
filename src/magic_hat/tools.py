@@ -579,3 +579,65 @@ def handle_hydra_audit():
         
     input("\nPress Enter to return...")
 
+def handle_wireless_bt_scanner():
+    """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== OPTION 1: WIRELESS & BLUETOOTH AIRSPACE SCAN ===")
+    print("-" * 55)
+    
+    print("[*] Scanning nearby Wi-Fi access points (nmcli / iw)...")
+    try:
+        wifi_res = subprocess.run(["nmcli", "dev", "wifi"], capture_output=True, text=True)
+        if wifi_res.stdout.strip():
+            print(wifi_res.stdout)
+        else:
+            iw_res = subprocess.run(["iw", "dev"], capture_output=True, text=True)
+            print(iw_res.stdout if iw_res.stdout.strip() else "[-] Wi-Fi scan requires root/NetHunter privileges or active interface.")
+    except Exception as e:
+        print(f"[-] Wi-Fi scan skipped/failed: {e}")
+
+    print("\n" + "=" * 55)
+    print("[*] Scanning nearby Bluetooth devices (hcitool / bluetoothctl)...")
+    try:
+        bt_res = subprocess.run(["hcitool", "scan"], capture_output=True, text=True, timeout=8)
+        print(bt_res.stdout if bt_res.stdout.strip() else "[-] No hcitool devices found or service inactive.")
+    except Exception as e:
+        print(f"[-] Bluetooth scan skipped/failed: {e}")
+        
+    log_scan("Wireless & BT Scanner", "Local Airspace", "Scanned local Wi-Fi and Bluetooth environment")
+    input("\nPress Enter to return to main menu...")
+
+def handle_subnet_sweep_tool():
+    """Option 2: Whole Subnet Host Sweep (Active Discovery)."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== OPTION 2: WHOLE SUBNET HOST SWEEP ===")
+    print("-" * 55)
+    
+    ips = get_all_device_ips()
+    default_subnet = "192.168.1.0/24"
+    if ips:
+        # Extract subnet from first detected IP CIDR
+        _, ip_cidr = ips[0]
+        default_subnet = get_subnet_range(ip_cidr)
+        
+    subnet = input(f"Enter subnet/CIDR to sweep [default {default_subnet}] (or 'b' to back): ").strip()
+    if subnet.lower() in ["b", "99", "back"]:
+        return
+        
+    target_subnet = subnet if subnet else default_subnet
+    
+    print(f"\n[+] Executing active ping/ARP sweep on host space: {target_subnet}...")
+    print("[*] Please wait while active hosts respond...\n")
+    
+    try:
+        cmd = ["nmap", "-sn", target_subnet]
+        res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        print(res.stdout)
+        log_scan("Subnet Sweep", target_subnet, res.stdout)
+    except Exception as e:
+        print(f"[-] Subnet sweep failed: {e}")
+        
+    input("\nPress Enter to return to main menu...")
+
