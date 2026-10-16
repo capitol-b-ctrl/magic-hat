@@ -1,6 +1,5 @@
 """Automated multi-stage reconnaissance pipeline for Magic Hat."""
 
-import time
 import threading
 import subprocess
 from magic_hat.database import log_scan
@@ -53,20 +52,3 @@ def run_autopilot_pipeline():
             
     import time
     time.sleep(1)
-    
-    
-    input("\nPress Enter to return to main menu...")
-
-@app.route('/api/stream')
-def api_stream():
-    """Stream live telemetry events to the web dashboard in real-time."""
-def event_stream():
-        last_id = 0
-        while True:
-            logs = get_scan_logs()
-            if logs and logs[0]['id'] > last_id:
-                latest = logs[0]
-                last_id = latest['id']
-                yield f"data: {json.dumps(latest)}\n\n"
-            time.sleep(2)
-    return app.response_class(event_stream(), mimetype='text/event-stream')

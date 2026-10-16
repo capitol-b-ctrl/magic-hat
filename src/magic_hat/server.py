@@ -1,5 +1,7 @@
 """Flask background web dashboard and REST API for Magic Hat telemetry."""
 
+import time
+import json
 import threading
 import subprocess
 from flask import Flask, render_template_string, jsonify, request
@@ -267,6 +269,21 @@ DASHBOARD_HTML = """
 </html>
 """
 
+
+@app.route('/api/stream')
+def api_stream():
+    """Stream live telemetry events to the web dashboard in real-time."""
+    def event_stream():
+        last_id = 0
+        while True:
+            logs = get_scan_logs()
+            if logs and logs[0]['id'] > last_id:
+                latest = logs[0]
+                last_id = latest['id']
+                yield f"data: {json.dumps(latest)}\n\n"
+            time.sleep(2)
+    return app.response_class(event_stream(), mimetype='text/event-stream')
+
 @app.route('/')
 def index():
     logs = get_scan_logs()
@@ -309,6 +326,8 @@ def toggle_web_server():
 
 def is_server_running():
     return running
+    
+    
     
     
     
