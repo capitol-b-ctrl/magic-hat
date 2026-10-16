@@ -53,7 +53,7 @@ Magic_Hat/
 ```
 
 
-⚙️ Installation & Setup
+## ⚙️ Installation & Setup
  * Clone the Repository:
    git clone [https://github.com/YOUR_USERNAME/Magic_Hat.git](https://github.com/YOUR_USERNAME/Magic_Hat.git)
 cd Magic_Hat
@@ -67,7 +67,7 @@ cd Magic_Hat
  * Verify Environment Health:
    magic-hat --check-deps
 
-🕹️ Usage & Execution
+## 🕹️ Usage & Execution
 1. Interactive Tactical Menu
 Launch the main framework interface:
 magic-hat
@@ -79,11 +79,17 @@ magic-hat --headless --target 192.168.1.0/24
 3. Web Command Center
 From the interactive menu, select Phase 5 to toggle the local web server, then open your browser at:
 👉 http://127.0.0.1:8080
+
 📋 Security Auditing Lifecycle Phases
  * Phase 1: Scope & Airspace Recon — Wireless and Bluetooth interface management & monitor mode toggling.
+ 
  * Phase 2: Active Network Discovery — ARP and Ping subnet host sweeping.
+ 
  * Phase 3: Vulnerability & Service Audit Suite — Access Nmap deep profilers, SSH auditing, PowerShell Core/WinRM tools, Ffuf, and Exploit-DB searches.
+ 
  * Phase 4: Auto-Pilot Assessment Pipeline — Chained multi-stage background scans.
+ 
  * Phase 5: Telemetry Server — Real-time Flask command center and log browser.
+ 
  * Phase 6: Audit Archives & Reporting — Export clean Markdown and JSON engagement summaries.
 
