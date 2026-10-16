@@ -1,11 +1,11 @@
 """Offensive security tool execution handlers and loggers for Magic Hat."""
 
-
+import os
 import shutil
 import subprocess
 import re
 from magic_hat.database import log_scan, get_scan_logs, get_connection
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_subnet_range, send_webhook_notification
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, print_tactical_header, get_subnet_range, send_webhook_notification
 import qrcode  # Requires: pip install qrcode
 import socket
 
@@ -13,29 +13,35 @@ def display_offensive_suite():
     while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print("=== OFFENSIVE & TACTICAL DEPLOYMENT SUITE ===")
-        print("-" * 55)
-        print("--- RECON & PROFILING ---")
+        print("       === OFFENSIVE & TACTICAL DEPLOYMENT SUITE ===")
+        print("=" * 60)
+        print("                  --- RECON & PROFILING ---")
+        print("-" * 60)
         print("1. Nmap Deep Recon & Target Profiler")
         print("2. Net Shark Packet Capture (tshark)")
         print("3. Web Directory Fuzzer (ffuf)")
         print("4. DNS Footprinting (dig)")
         print("5. Web Tech Stack Fingerprinting (whatweb)")
         print("6. Wireless & RF Footprinting")
-        print("--- AUDITING & EXPLOITATION ---")
+        print("-" * 60)
+        print("              --- AUDITING & EXPLOITATION ---")
+        print("-" * 60)
         print("7. SSH & PowerShell Remote Auditors")
         print("8. Hash Identifier & Cracking Assistant")
         print("9. Exploit Database Search (searchsploit)")
         print("10. Credential Service Auditor (hydra)")
-        print("--- TACTICAL DEPLOYMENT & UTILS ---")
+        print("-" * 60)
+        print("             --- TACTICAL DEPLOYMENT & UTILS ---")
+        print("-" * 60)
         print("11. Cryptographic Engine (Base64/XOR)")
         print("12. Tactical Reverse Shell Generator")
         print("13. ASCII QR Code Payload Generator")
         print("14. Bluetooth Attack & SDP Suite")
         print("15. Wireless Monitor Mode Manager")
         print("16. Wordlist Manager")
+        print("-" * 60)
         print("99. Back to Lifecycle Menu (b)")
-        print("-" * 55)
+        print("=" * 60)
         
         choice = input("Select tactical module [1-16, or 99/b]: ").strip().lower()
         if choice in ["99", "b", "back"]:
@@ -122,15 +128,16 @@ def handle_nmap_menu():
     while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print("=== PAGE: NMAP DEEP RECON & TARGET PROFILER ===")
-        print("-" * 55)
+        print_tactical_header()
+        print("       === PAGE: NMAP DEEP RECON & TARGET PROFILER ===")
+        print("-" * 60)
         print("1. Quick Port Scan (-T4)")
         print("2. Service & Version Detection (-sV -T4)")
         print("3. Comprehensive Target Profile (OS, Scripts, Versions: -A -sC -T4)")
         print("4. Full Port Sweep (-p- -T4)")
         print("5. Custom Flags")
         print("99. Back to Suite Menu (b)")
-        print("-" * 55)
+        print("-" * 60)
         
         choice = input("Select profile [1-5, or 99/b]: ").strip().lower()
         if choice in ["99", "b", "back"]:
@@ -170,21 +177,22 @@ def handle_nmap_menu():
             
             clear_screen()
             print(BANNER_IMAGE)
+            print_tactical_header()
             print(f"=== DEEP RECON REPORT: {target} ===")
-            print("-" * 55)
+            print("-" * 60)
             print(f"[*] Target OS Guess : {telemetry['os_guess']}")
             print(f"[*] MAC / Hardware  : {telemetry['mac_address']}")
-            print("-" * 55)
+            print("-" * 60)
             
             if telemetry["open_ports"]:
                 print(f"{'PORT/PROTO':<12} | {'SERVICE':<15} | {'VERSION / DETAILS'}")
-                print("-" * 55)
+                print("-" * 60)
                 for p in telemetry["open_ports"]:
                     print(f"{p['port']:<12} | {p['service']:<15} | {p['details']}")
             else:
                 print("[*] Raw scan output (no standard ports parsed):")
                 print(output[:1500])
-            print("-" * 55)
+            print("-" * 60)
             
             # Log scan with structured metadata for reporting and dashboard
             log_scan("Nmap Deep Recon", target, output, metadata=telemetry)
@@ -200,13 +208,14 @@ def handle_net_shark():
     """Tool 2: Net Shark (Packet Capture / tshark)."""
     clear_screen()
     print(BANNER_IMAGE)
+    print_tactical_header()
     print("=== PAGE: NET SHARK (PACKET CAPTURE) ===")
     
     ips = get_all_device_ips()
     print("[*] Available Interfaces:")
     for iface, ip in ips:
         print(f"    - {iface} ({ip})")
-    print("-" * 45)
+    print("-" * 60)
     
     iface = input("Enter interface to sniff (e.g., wlan0, rmnet0) or 'b' to back: ").strip()
     if iface.lower() in ["b", "99", "back", ""]:
@@ -223,6 +232,7 @@ def handle_net_shark():
         
         clear_screen()
         print(BANNER_IMAGE)
+        print_tactical_header()
         print(f"=== PACKET CAPTURE RESULTS: {iface} ===")
         print(output)
         
@@ -240,8 +250,9 @@ def handle_web_fuzzer():
     """Tool 3: Web Directory Fuzzer (ffuf wrapper)."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: WEB DIR FUZZER (FFUF) ===")
-    print("-" * 45)
+    print_tactical_header()
+    print("             === PAGE: WEB DIR FUZZER (FFUF) ===")
+    print("-" * 60)
     
     url = input("Enter target URL (e.g., http://10.0.0.1/FUZZ) or 'b' to back: ").strip()
     if url.lower() in ["b", "99", "back", ""]:
@@ -279,8 +290,9 @@ def handle_dns_recon():
     """Tool 4: DNS Recon (dig wrapper)."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: DNS FOOTPRINTING (DIG) ===")
-    print("-" * 45)
+    print_tactical_header()
+    print("            === PAGE: DNS FOOTPRINTING (DIG) ===")
+    print("-" * 60)
     
     domain = input("Enter target domain or hostname (or 'b' to back): ").strip()
     if domain.lower() in ["b", "99", "back", ""]:
@@ -325,8 +337,9 @@ def handle_tech_fingerprint():
     """Tool 5: Web Tech Fingerprinting (whatweb wrapper)."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: WEB TECH FINGERPRINT (WHATWEB) ===")
-    print("-" * 45)
+    print_tactical_header()
+    print("        === PAGE: WEB TECH FINGERPRINT (WHATWEB) ===")
+    print("-" * 60)
     
     target = input("Enter target URL or IP (or 'b' to back): ").strip()
     if target.lower() in ["b", "99", "back", ""]:
@@ -356,8 +369,9 @@ def handle_subnet_sweep():
     """Tool 6: Local Subnet Discovery & ARP Sweeping."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: SUBNET & ARP DISCOVERY ===")
-    print("-" * 45)
+    print_tactical_header()
+    print("            === PAGE: SUBNET & ARP DISCOVERY ===")
+    print("-" * 60)
     
     ips = get_all_device_ips()
     default_sub = "192.168.1.0/24"
@@ -378,6 +392,7 @@ def handle_subnet_sweep():
         
         clear_screen()
         print(BANNER_IMAGE)
+        print_tactical_header()
         print(f"=== LIVE HOST DISCOVERY: {target_sub} ===")
         print(output)
         
@@ -393,12 +408,13 @@ def handle_wireless_recon():
     """Tool 7: Wireless & RF Footprinting Wrapper."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: WIRELESS & RF FOOTPRINTING ===")
-    print("-" * 45)
+    print_tactical_header()
+    print("            === PAGE: WIRELESS & RF FOOTPRINTING ===")
+    print("-" * 60)
     print("1. List Wireless Interfaces & Status (iw / nmcli)")
     print("2. Scan Nearby Wi-Fi Networks")
     print("99. Back to Suite Menu (b)")
-    print("-" * 45)
+    print("-" * 60)
     
     choice = input("Select option [1-2, or 99/b]: ").strip().lower()
     if choice in ["99", "b", "back"]:
@@ -417,6 +433,7 @@ def handle_wireless_recon():
         
         clear_screen()
         print(BANNER_IMAGE)
+        print_tactical_header()
         print("=== WIRELESS RECON REPORT ===")
         print(output if output else "[*] Command executed but returned no output.")
         
@@ -431,8 +448,9 @@ def handle_hash_identifier():
     """Tool 8: Hash Identification & Cracking Assistant."""
     clear_screen()
     print(BANNER_IMAGE)
+    print_tactical_header()
     print("=== PAGE: HASH IDENTIFIER & AUDIT ===")
-    print("-" * 45)
+    print("-" * 60)
     
     hash_str = input("Enter hash string to analyze (or 'b' to back): ").strip()
     if hash_str.lower() in ["b", "99", "back", ""]:
@@ -456,13 +474,14 @@ def handle_hash_identifier():
         
     clear_screen()
     print(BANNER_IMAGE)
+    print_tactical_header()
     print("=== HASH ANALYSIS RESULTS ===")
     print(f"[*] Input Hash: {hash_str}")
     print(f"[*] Length: {length} characters")
     print("[*] Potential Formats:")
     for fmt in identified:
         print(f"    - {fmt}")
-    print("-" * 55)
+    print("-" * 60)
     
     run_crack = input("Would you like to invoke hashcat against this hash? (y/n): ").strip().lower()
     if run_crack == 'y':
@@ -484,8 +503,9 @@ def handle_exploit_search():
     """Tool 9: Exploit Search Engine (searchsploit wrapper)."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: EXPLOIT SEARCH ENGINE ===")
-    print("-" * 45)
+    print_tactical_header()
+    print("             === PAGE: EXPLOIT SEARCH ENGINE ===")
+    print("-" * 60)
     
     query = input("Enter service or software version (e.g., 'apache 2.4', 'vsftpd 2.3.4') or 'b' to back: ").strip()
     if query.lower() in ["b", "99", "back", ""]:
@@ -515,8 +535,9 @@ def handle_hydra_audit():
     """Tool 10: Credential & Service Auditor (hydra wrapper)."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: CREDENTIAL AUDITOR (HYDRA) ===")
-    print("-" * 45)
+    print_tactical_header()
+    print("          === PAGE: CREDENTIAL AUDITOR (HYDRA) ===")
+    print("-" * 60)
     
     target = input("Enter target IP/hostname (or 'b' to back): ").strip()
     if target.lower() in ["b", "99", "back", ""]:
@@ -551,8 +572,9 @@ def handle_wireless_bt_scanner():
     """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices using Termux API or binaries."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== OPTION 1: WIRELESS & BLUETOOTH AIRSPACE SCAN ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("    === OPTION 1: WIRELESS & BLUETOOTH AIRSPACE SCAN ===")
+    print("-" * 60)
     
     print("[*] Scanning nearby Wi-Fi access points...")
     wifi_output = ""
@@ -579,7 +601,7 @@ def handle_wireless_bt_scanner():
     else:
         print("[-] Wi-Fi scan returned no data. (Tip: Install 'termux-api' package & app).")
 
-    print("\n" + "=" * 55)
+    print("\n" + "=" * 60)
     print("[*] Scanning nearby Bluetooth devices...")
     bt_output = ""
     try:
@@ -608,8 +630,9 @@ def handle_subnet_sweep_tool():
     """Option 2: Whole Subnet Host Sweep (Active Discovery)."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== OPTION 2: WHOLE SUBNET HOST SWEEP ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("         === OPTION 2: WHOLE SUBNET HOST SWEEP ===")
+    print("-" * 60)
     
     ips = get_all_device_ips()
     default_subnet = "192.168.1.0/24"
@@ -638,8 +661,8 @@ def handle_view_logs():
     while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print("=== SCAN ARCHIVES (LOGS) ===")
-        print("-" * 55)
+        print("                === SCAN ARCHIVES (LOGS) ===")
+        print("-" * 60)
         
         logs = get_scan_logs()
         if not logs:
@@ -648,11 +671,11 @@ def handle_view_logs():
             break
             
         print(f"{'ID':<4} | {'Tool':<16} | {'Target':<15} | {'Timestamp'}")
-        print("-" * 55)
+        print("-" * 60)
         for log in logs:
             print(f"{log['id']:<4} | {log['tool_name']:<16} | {log['target']:<15} | {log['timestamp']}")
             
-        print("-" * 55)
+        print("-" * 60)
         view_id = input("Enter log ID to view full output (or press Enter to go back): ").strip()
         if not view_id:
             break
@@ -667,9 +690,9 @@ def handle_view_logs():
                     print(f"Tool:   {row['tool_name']}")
                     print(f"Target: {row['target']}")
                     print(f"Time:   {row['timestamp']}")
-                    print("-" * 55)
+                    print("-" * 60)
                     print(row['output'])
-                    print("-" * 55)
+                    print("-" * 60)
                 else:
                     print("\n[-] Error: Log ID not found.")
             input("\nPress Enter to continue...")
@@ -681,8 +704,9 @@ def handle_ssh_audit():
     """Tool: SSH Remote Execution & Banner/Key Auditor."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: SSH AUDITOR & REMOTE ACCESS ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("    === PAGE: SSH AUDITOR & REMOTE ACCESS ===")
+    print("-" * 60)
     
     target = input("Enter target IP/hostname (or 'b' to back): ").strip()
     if target.lower() in ["b", "99", "back", ""]:
@@ -741,8 +765,9 @@ def handle_powershell_audit():
     """Tool: PowerShell Core (pwsh) & WinRM Remote Management."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: POWERSHELL CORE & WINRM AUDITOR ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("       === PAGE: POWERSHELL CORE & WINRM AUDITOR ===")
+    print("-" * 60)
     
     if not shutil.which("pwsh"):
         print("\n[-] Notice: 'pwsh' (PowerShell Core) binary is not installed in this environment.")
@@ -755,7 +780,7 @@ def handle_powershell_audit():
     print("1. Run Local PowerShell Command / One-Liner (pwsh -c)")
     print("2. WinRM Remote Query (WS-Man / Windows Hosts)")
     print("99. Back (b)")
-    print("-" * 55)
+    print("-" * 60)
     
     choice = input("Select option [1-2, or 99/b]: ").strip().lower()
     if choice in ["99", "b", "back"]:
@@ -782,12 +807,13 @@ def handle_wireless_recon():
     """Tool: Wireless & RF Footprinting with fallback interface checks."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: WIRELESS & RF FOOTPRINTING ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("     === PAGE: WIRELESS & RF FOOTPRINTING ===")
+    print("-" * 60)
     print("1. List Wireless Interfaces & Status (iw / nmcli / ip link)")
     print("2. Scan Nearby Wi-Fi Networks")
     print("99. Back to Suite Menu (b)")
-    print("-" * 55)
+    print("-" * 60)
     
     choice = input("Select option [1-2, or 99/b]: ").strip().lower()
     if choice in ["99", "b", "back"]:
@@ -824,6 +850,7 @@ def handle_wireless_recon():
             
     clear_screen()
     print(BANNER_IMAGE)
+    print_tactical_header()
     print("=== WIRELESS / RF TELEMETRY ===")
     print(output)
     log_scan("Wireless Recon", "Airspace", output)
@@ -833,13 +860,14 @@ def handle_monitor_mode():
     """Hardware Tool: Toggle wireless interface monitor mode via airmon-ng or iwconfig."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== WIRELESS MONITOR MODE & DONGLE MANAGER ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("        === WIRELESS MONITOR MODE & DONGLE MANAGER ===")
+    print("-" * 60)
     print("1. Check Wireless Interfaces (airmon-ng / iwconfig)")
     print("2. Enable Monitor Mode on Interface (e.g., wlan0)")
     print("3. Disable Monitor Mode")
     print("99. Back (b)")
-    print("-" * 55)
+    print("-" * 60)
     
     choice = input("Select option [1-3, or 99/b]: ").strip().lower()
     if choice in ["99", "b", "back"]:
@@ -876,8 +904,9 @@ def handle_wordlist_manager():
     """Integrated Wordlist Manager: Verify and sync standard wordlists."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== INTEGRATED WORDLIST MANAGER ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("            === INTEGRATED WORDLIST MANAGER ===")
+    print("-" * 60)
     wordlist_path = "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt"
     print(f"[*] Default Wordlist Path: {wordlist_path}")
     
@@ -903,12 +932,13 @@ def handle_bluetooth_recon():
     """Tool: Bluetooth & BLE Airspace Mapping."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== BLUETOOTH & BLE AIRSPACE RECON ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("            === BLUETOOTH & BLE AIRSPACE RECON ===")
+    print("-" * 60)
     print("1. Scan Classic Bluetooth Devices (hcitool scan)")
     print("2. Scan BLE Devices (bluetoothctl scan le)")
     print("99. Back (b)")
-    print("-" * 55)
+    print("-" * 60)
     
     choice = input("Select option [1-2, or 99/b]: ").strip().lower()
     if choice in ["99", "b", "back"]:
@@ -946,13 +976,14 @@ def handle_payload_generator():
     """Tool: Tactical Reverse Shell & Payload Generator."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: TACTICAL REVERSE SHELL GENERATOR ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("        === PAGE: TACTICAL REVERSE SHELL GENERATOR ===")
+    print("-" * 60)
     print("1. Python3 Socket Reverse Shell")
     print("2. Bash TCP Reverse Shell One-Liner")
     print("3. Netcat Traditional / OpenBSD Listener Command")
     print("99. Back (b)")
-    print("-" * 55)
+    print("-" * 60)
     
     choice = input("Select option [1-3, or 99/b]: ").strip().lower()
     if choice in ["99", "b", "back"]:
@@ -978,7 +1009,7 @@ def handle_payload_generator():
     print(BANNER_IMAGE)
     print("=== GENERATED PAYLOAD STUB ===")
     print(f"\n{payload}\n")
-    print("-" * 55)
+    print("-" * 60)
     log_scan("Payload Generator", f"LHOST:{lhost} LPORT:{lport}", payload)
     input("Press Enter to return...")
 
@@ -986,8 +1017,9 @@ def handle_qr_exploit():
     """Tool: QR Code Payload / Phishing Vector Generator."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: QR CODE EXPLOIT / PAYLOAD GENERATOR ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("        === PAGE: QR CODE EXPLOIT / PAYLOAD GENERATOR ===")
+    print("-" * 60)
     target_url = input("Enter payload URL or malicious redirection target: ").strip()
     if not target_url:
         return
@@ -1001,7 +1033,7 @@ def handle_qr_exploit():
         print(BANNER_IMAGE)
         print(f"=== ASCII QR CODE PAYLOAD FOR: {target_url} ===")
         qr.print_ascii(tty=True)
-        print("-" * 55)
+        print("-" * 60)
         log_scan("QR Code Generator", target_url, "Generated ASCII QR payload")
     except Exception as e:
         print(f"[-] Failed to generate QR code (ensure 'qrcode' is installed): {e}")
@@ -1012,12 +1044,13 @@ def handle_bluetooth_attacks():
     """Tool: Advanced Bluetooth Enumeration & L2CAP Stress Testing."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: BLUETOOTH ATTACK & ENUMERATION SUITE ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("     === PAGE: BLUETOOTH ATTACK & ENUMERATION SUITE ===")
+    print("-" * 60)
     print("1. Scan & Enumerate Device SDP Services (sdptool)")
     print("2. L2CAP Ping Flood / Stress Test (l2ping)")
     print("99. Back (b)")
-    print("-" * 55)
+    print("-" * 60)
     
     choice = input("Select option [1-2, or 99/b]: ").strip().lower()
     if choice in ["99", "b", "back"]:
@@ -1061,12 +1094,13 @@ def handle_crypto_engine():
     """Tool: Cryptographic Encryption and Decryption Engine."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== PAGE: CRYPTO & OBFUSCATION ENGINE ===")
-    print("-" * 55)
+    print_tactical_header()
+    print("          === PAGE: CRYPTO & OBFUSCATION ENGINE ===")
+    print("-" * 60)
     print("1. Base64 Encode / Decode")
     print("2. Simple XOR Transformation")
     print("99. Back to Suite Menu (b)")
-    print("-" * 55)
+    print("-" * 60)
     
     choice = input("Select option [1-2, or 99/b]: ").strip().lower()
     if choice in ["99", "b", "back"]:

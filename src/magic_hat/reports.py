@@ -10,8 +10,8 @@ def export_engagement_report():
     """Export all SQLite scan logs into a structured Markdown and JSON report."""
     clear_screen()
     print(BANNER_IMAGE)
-    print("=== AUTOMATED ENGAGEMENT REPORT GENERATOR ===")
-    print("-" * 55)
+    print("       === AUTOMATED ENGAGEMENT REPORT GENERATOR ===")
+    print("-" * 60)
     
     logs = get_scan_logs()
     if not logs:
@@ -57,11 +57,11 @@ def handle_report_menu():
     while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print("=== REPORT GENERATION & EXPORT MENU ===")
-        print("-" * 55)
+        print("           === REPORT GENERATION & EXPORT MENU ===")
+        print("-" * 60)
         print("1. Export Full Engagement Report (Markdown & JSON)")
         print("99. Back to Main Menu (b)")
-        print("-" * 55)
+        print("-" * 60)
         choice = input("Select option [1, or 99/b]: ").strip().lower()
         if choice in ["99", "b", "back"]:
             break

@@ -34,9 +34,9 @@ def _background_pipeline_task():
 def run_autopilot_pipeline():
     """Trigger background pipeline execution and return instantly to menu."""
     print_tactical_header()
-    print("=== AUTO-PILOT RECONNAISSANCE PIPELINE ===")
+    print("         === AUTO-PILOT RECONNAISSANCE PIPELINE ===")
     print("Description: Runs multi-stage subnet discovery asynchronously.")
-    print("-" * 55)
+    print("=" * 60)
     
     if utils.PIPELINE_STATE == "RUNNING...":
         print("[!] Pipeline is already executing in the background...")

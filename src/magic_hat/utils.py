@@ -44,7 +44,7 @@ BANNER_IMAGE = r"""
 / /\ \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \/\ \
 \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
  `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
-	RADtheMAGICIAN  v0.1.0
+	RADtheMAGICIAN  v0.3.0
 
 """
 
@@ -62,7 +62,7 @@ def load_config():
         "default_wordlist": "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt",
         "server_host": "127.0.0.1",
         "server_port": 8080,
-        "required_binaries": ["nmap", "tshark", "ffuf", "dig", "searchsploit"]
+        "required_binaries": ["nmap", "tshark", "ffuf", "dig", "searchsploit", "qrcode"]
     }
     if os.path.exists(config_path):
         try:
@@ -142,7 +142,7 @@ def print_tactical_header():
     srv_status = "[ONLINE]" if WEB_SERVER_ACTIVE else "[OFFLINE]"
     pipe_status = PIPELINE_STATE
     print(f"[*] Status -> Web Server: {srv_status} | Pipeline: {pipe_status}")
-    print("-" * 55)
+    print("." * 60)
     
 def send_notification(message):
     """Dispatch status notifications via Webhook or Telegram if configured."""

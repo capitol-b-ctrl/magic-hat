@@ -33,9 +33,9 @@ from magic_hat.server import toggle_web_server, is_server_running
 
 def display_lifecycle_menu():
     """Display standard security auditing workflow menus."""
-    print("---------------------------------------------")
-    print("               MAIN MENU           ")
-    print("---------------------------------------------")
+    print("=" * 60)
+    print("                        MAIN MENU")
+    print("-"*60)
     print("1. Phase 1: Scope & Airspace Recon (Wi-Fi/BT)")
     print("2. Phase 2: Active Network Discovery & Sweeping")
     print("3. Phase 3: Vulnerability & Service Audit Suite")
@@ -43,7 +43,7 @@ def display_lifecycle_menu():
     print("5. Phase 5: Telemetry Server & Web Dashboard Toggle")
     print("6. Phase 6: Audit Archives & Report Generation")
     print("7. Exit Framework")
-    print("---------------------------------------------")
+    print("=" * 60)
 
 def main():
     """Main application loop."""
