@@ -21,18 +21,35 @@
 
 ```text
 Magic_Hat/
-├── config.json                 # Centralized framework configuration
-├── pyproject.toml              # Package configuration & entry points
-└── src/
-    └── magic_hat/
-        ├── __init__.py
-        ├── main.py             # CLI parser & 6-phase interactive menu loop
-        ├── utils.py            # Helpers, banner art, IP detection, config loader
-        ├── database.py         # SQLite telemetry storage & schema migrations
-        ├── tools.py            # Offensive auditing suite (Nmap, SSH, PowerShell, etc.)
-        ├── pipeline.py         # Multi-stage automated recon chains
-        ├── server.py           # Flask web dashboard & REST API
-        └── reports.py          # Markdown & JSON engagement report generator
+├── .git/
+├── .gitignore
+├── .venv/
+├── .ruff_cache/
+├── README.md
+├── pyproject.toml
+├── setup.py
+├── src/
+│   ├── command_not_found_handle
+│   ├── magic-hat.py
+│   ├── magic_hat.egg-info/
+│   └── magic_hat/
+│       ├── .ruff_cache/
+│       ├── __init__.py
+│       ├── __pycache__/
+│       ├── config.json
+│       ├── data/
+│       │   └── magic_hat.db
+│       ├── database.py
+│       ├── main.py
+│       ├── pipeline.py
+│       ├── reports/
+│       ├── reports.py
+│       ├── server.py
+│       ├── tools.py
+│       └── utils.py
+└── tests/
+    ├── __init__.py
+    └── test_database.py
 ```
 
 
