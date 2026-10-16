@@ -15,6 +15,12 @@
 * **Comprehensive Tool Suite:** Includes Nmap deep profiling, packet capture (`tshark`), web fuzzing (`ffuf`), DNS footprinting, Exploit-DB searches (`searchsploit`), SSH remote auditing, PowerShell Core/WinRM management, and wireless monitor mode tools.
 * **Automated Report Generator:** One-click export of engagement logs into structured Markdown (`.md`) and JSON summary reports.
 
+## 🚀 Expanded Tactical Modules
+* **Cryptographic Engine:** Built-in Base64 encoding/decoding and XOR stream obfuscation.
+* **Payload Generator:** Instant generation of Python3, Bash, and Netcat reverse shell stubs mapped to custom LHOST/LPORT parameters.
+* **QR Code Exploit Vector:** On-the-fly ASCII QR code rendering for malicious URLs and phishing redirection targets directly in the terminal.
+* **Bluetooth Attack & Airspace Suite:** Classic Bluetooth SDP device browsing and L2CAP packet stress-testing (`l2ping`).
+
 ---
 
 ## 📂 Project Architecture
