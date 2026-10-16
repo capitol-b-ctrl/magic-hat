@@ -80,7 +80,8 @@ magic-hat --headless --target 192.168.1.0/24
 From the interactive menu, select Phase 5 to toggle the local web server, then open your browser at:
 👉 http://127.0.0.1:8080
 
-📋 Security Auditing Lifecycle Phases
+##📋 Security Auditing Lifecycle Phases
+
  * Phase 1: Scope & Airspace Recon — Wireless and Bluetooth interface management & monitor mode toggling.
  
  * Phase 2: Active Network Discovery — ARP and Ping subnet host sweeping.
