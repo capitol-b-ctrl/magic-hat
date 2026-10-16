@@ -33,6 +33,8 @@ Magic_Hat/
         ├── pipeline.py         # Multi-stage automated recon chains
         ├── server.py           # Flask web dashboard & REST API
         └── reports.py          # Markdown & JSON engagement report generator
+```
+
 
 ⚙️ Installation & Setup
  * Clone the Repository:
