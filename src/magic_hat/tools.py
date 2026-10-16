@@ -784,6 +784,73 @@ def handle_powershell_audit():
             
     input("\nPress Enter to return...")
     
+def handle_monitor_mode():
+    """Hardware Tool: Toggle wireless interface monitor mode via airmon-ng or iwconfig."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== WIRELESS MONITOR MODE & DONGLE MANAGER ===")
+    print("-" * 55)
+    print("1. Check Wireless Interfaces (airmon-ng / iwconfig)")
+    print("2. Enable Monitor Mode on Interface (e.g., wlan0)")
+    print("3. Disable Monitor Mode")
+    print("99. Back (b)")
+    print("-" * 55)
     
+    choice = input("Select option [1-3, or 99/b]: ").strip().lower()
+    if choice in ["99", "b", "back"]:
+        return
+    elif choice == "1":
+        try:
+            res = subprocess.run(["airmon-ng"], capture_output=True, text=True, check=True)
+            print(res.stdout)
+        except Exception:
+            try:
+                res = subprocess.run(["iwconfig"], capture_output=True, text=True, check=True)
+                print(res.stdout)
+            except Exception as e:
+                print(f"[-] Wireless query failed: {e}")
+    elif choice == "2":
+        iface = input("Enter interface name to put into monitor mode (e.g., wlan0): ").strip()
+        if iface:
+            try:
+                subprocess.run(["airmon-ng", "start", iface], check=True)
+                print(f"\n[✔] Monitor mode enabled.")
+            except Exception as e:
+                print(f"[-] Failed to start monitor mode: {e}")
+    elif choice == "3":
+        iface = input("Enter monitor interface name to stop (e.g., wlan0mon): ").strip()
+        if iface:
+            try:
+                subprocess.run(["airmon-ng", "stop", iface], check=True)
+                print(f"\n[✔] Monitor mode stopped.")
+            except Exception as e:
+                print(f"[-] Failed to stop monitor mode: {e}")
+    input("\nPress Enter to return...")
+
+def handle_wordlist_manager():
+    """Integrated Wordlist Manager: Verify and sync standard wordlists."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== INTEGRATED WORDLIST MANAGER ===")
+    print("-" * 55)
+    wordlist_path = "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt"
+    print(f"[*] Default Wordlist Path: {wordlist_path}")
     
+    exists = os.path.exists(wordlist_path)
+    print(f"[*] Status: {'FOUND [✔]' if exists else 'MISSING [✘]'}")
+    
+    if not exists:
+        print("\n[+] Creating standard fallback wordlist directory & file...")
+        try:
+            os.makedirs(os.path.dirname(wordlist_path), exist_ok=True)
+            sample_words = ["admin", "login", "dashboard", "api", "config.json", "secret", "backup", "test", "uploads", "wp-admin", "server-status"]
+            with open(wordlist_path, "w") as wf:
+                wf.write("\n".join(sample_words) + "\n")
+            print("[✔] Fallback common wordlist created successfully!")
+        except Exception as e:
+            print(f"[-] Failed to create wordlist: {e}")
+    else:
+        print("[✔] Wordlist is verified and ready for FFUF and audit tools.")
+        
+    input("\nPress Enter to return...")
     
