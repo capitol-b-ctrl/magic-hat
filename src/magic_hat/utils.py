@@ -8,6 +8,8 @@ import urllib.request
 import json
 import os
 import ipaddress
+import shutil
+
 
 BANNER_IMAGE = r"""
 
@@ -50,23 +52,41 @@ def clear_screen():
     """Clear terminal screen safely."""
     os.system("cls" if os.name == "nt" else "clear")
 
+def load_config():
+    """Load centralized configuration from config.json."""
+    config_path = os.path.join(os.getcwd(), "config.json")
+    default_config = {
+        "default_subnet": "192.168.1.0/24",
+        "default_wordlist": "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt",
+        "server_host": "127.0.0.1",
+        "server_port": 8080,
+        "required_binaries": ["nmap", "tshark", "ffuf", "dig", "searchsploit"]
+    }
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as f:
+                return json.load(f)
+        except Exception:
+            return default_config
+    return default_config
+
+def clear_screen():
+    """Clear terminal screen safely."""
+    os.system("cls" if os.name == "nt" else "clear")
+
 def get_all_device_ips():
     """Detect active network interfaces and their IP addresses."""
     ips = []
     try:
         import subprocess
-        # Parse output from 'ip route' or 'ifconfig'
         result = subprocess.run(["ip", "addr"], capture_output=True, text=True)
         for line in result.stdout.splitlines():
             if "inet " in line and "127.0.0.1" not in line:
                 parts = line.strip().split()
                 for part in parts:
                     if "/" in part:
-                        ip_cidr = part
-                        # Find interface name from previous lines or context
-                        ips.append(("network", ip_cidr))
+                        ips.append(("network", part))
         if not ips:
-            # Fallback mock if restricted
             ips.append(("default", "192.168.1.139/24"))
     except Exception:
         ips.append(("default", "192.168.1.139/24"))
@@ -80,6 +100,30 @@ def get_subnet_range(ip_cidr):
     except Exception:
         return "192.168.1.0/24"
 
+def check_dependencies():
+    """Verify presence of core security binaries in system PATH."""
+    config = load_config()
+    binaries = config.get("required_binaries", ["nmap", "tshark", "ffuf", "dig", "searchsploit"])
+    
+    print("[*] Performing pre-flight dependency check...")
+    missing = []
+    for binary in binaries:
+        path = shutil.which(binary)
+        if path:
+            print(f"    [✔] {binary:<15} -> {path}")
+        else:
+            print(f"    [✘] {binary:<15} -> NOT FOUND")
+            missing.append(binary)
+            
+    if missing:
+        print(f"\n[!] Warning: Missing binaries: {', '.join(missing)}")
+        print("[!] Some modules may fail unless installed via 'pkg install'.")
+    else:
+        print("\n[✔] All core dependencies verified successfully!")
+    input("\nPress Enter to continue...")
+
 def send_webhook_notification(title, message):
     """Optional webhook notification helper."""
     pass
+
+

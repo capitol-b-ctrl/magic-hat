@@ -1,0 +1,7 @@
+{
+  "default_subnet": "192.168.1.0/24",
+  "default_wordlist": "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt",
+  "server_host": "127.0.0.1",
+  "server_port": 8080,
+  "required_binaries": ["nmap", "tshark", "ffuf", "dig", "searchsploit"]
+}

@@ -2,7 +2,61 @@
 
 import sqlite3
 import os
+import json
 from datetime import datetime
+
+
+
+
+
+DB_PATH = os.path.expanduser("~/Magic_Hat/src/magic_hat/data/magic_hat_telemetry.db")
+
+def get_connection():
+    """Establish a connection to the SQLite telemetry database."""
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    """Initialize database tables with structured metadata columns."""
+    with get_connection() as conn:
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS scan_logs (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                tool_name TEXT NOT NULL,
+                target TEXT NOT NULL,
+                metadata_json TEXT,
+                output TEXT,
+                timestamp TEXT NOT NULL
+            )
+        """)
+        conn.commit()
+
+def log_scan(tool_name, target, output, metadata=None):
+    """Log scan results with raw output and structured metadata."""
+    init_db()
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    meta_str = json.dumps(metadata) if metadata else "{}"
+    with get_connection() as conn:
+        conn.execute(
+            "INSERT INTO scan_logs (tool_name, target, metadata_json, output, timestamp) VALUES (?, ?, ?, ?, ?)",
+            (tool_name, target, meta_str, output, timestamp)
+        )
+        conn.commit()
+
+def get_scan_logs():
+    """Retrieve all logged scans."""
+    init_db()
+    with get_connection() as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT id, tool_name, target, timestamp FROM scan_logs ORDER BY id DESC")
+        return [dict(row) for row in cursor.fetchall()]
+
+
+
+#____________________________________
+
+
 
 # Anchor database locally inside the package directory
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
