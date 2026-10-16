@@ -10,7 +10,9 @@ import os
 import ipaddress
 import shutil
 
-
+# Global persistent state flags
+WEB_SERVER_ACTIVE = False
+PIPELINE_STATE = "IDLE"
 BANNER_IMAGE = r"""
 
 
@@ -126,4 +128,18 @@ def send_webhook_notification(title, message):
     """Optional webhook notification helper."""
     pass
 
-
+def print_tactical_header():
+    """Print banner, active network spaces, and persistent system statuses."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    ips = get_all_device_ips()
+    if ips:
+        print("[*] Active Interfaces & Host Spaces:")
+        for iface, ip_cidr in ips:
+            subnet = get_subnet_range(ip_cidr)
+            print(f"    - IP: {ip_cidr} | Subnet Space: {subnet}")
+    
+    srv_status = "[ONLINE]" if WEB_SERVER_ACTIVE else "[OFFLINE]"
+    pipe_status = PIPELINE_STATE
+    print(f"[*] Status -> Web Server: {srv_status} | Pipeline: {pipe_status}")
+    print("-" * 55)

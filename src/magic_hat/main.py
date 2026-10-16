@@ -1,6 +1,8 @@
 import sys
 import argparse
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_subnet_range, check_dependencies, load_config
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_subnet_range, check_dependencies, load_config, print_tactical_header
+import magic_hat.utils as utils
+
 from magic_hat.tools import (
     handle_wireless_bt_scanner,
     handle_subnet_sweep_tool,
@@ -49,6 +51,7 @@ def main():
         srv_status = "[ONLINE]" if is_server_running() else "[OFFLINE]"
         print(f"[*] Local Web Dashboard: {srv_status}\n")
         
+        print_tactical_header()
         display_lifecycle_menu()
         
         choice = input("Select lifecycle phase [1-7, or 99/b]: ").strip().lower()

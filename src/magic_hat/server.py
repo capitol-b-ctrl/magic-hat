@@ -289,18 +289,23 @@ def run_server():
 
 def toggle_web_server():
     global server_thread, running
+    import magic_hat.utils as utils
     config = load_config()
     host = config.get("server_host", "127.0.0.1")
     port = config.get("server_port", 8080)
 
     if running:
-        print("\n[*] Web dashboard is running. To stop Flask, exit Magic Hat or terminate process.")
+        print("\n[*] Web dashboard is running.")
     else:
         server_thread = threading.Thread(target=run_server, daemon=True)
         server_thread.start()
         running = True
+        utils.WEB_SERVER_ACTIVE = True  # Persist status under banner
         print(f"\n[✔] Tactical Web Dashboard launched successfully at http://{host}:{port}")
-        input("Press Enter to return to main menu...")
+        input("Press Enter to return to main menu...
 
 def is_server_running():
     return running
+    
+    
+    
