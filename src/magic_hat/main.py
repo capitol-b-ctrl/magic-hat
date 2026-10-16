@@ -15,7 +15,7 @@ from magic_hat.server import toggle_web_server, is_server_running
 def display_lifecycle_menu():
     """Display standard security auditing workflow menus."""
     print("---------------------------------------------")
-    print("SECURITY AUDITING LIFECYCLE MENU")
+    print("               MAIN MENU           ")
     print("---------------------------------------------")
     print("1. Phase 1: Scope & Airspace Recon (Wi-Fi/BT)")
     print("2. Phase 2: Active Network Discovery & Sweeping")
