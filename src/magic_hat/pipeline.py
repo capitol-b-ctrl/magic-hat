@@ -30,22 +30,26 @@ def _background_pipeline_task():
         utils.PIPELINE_STATE = f"FAILED [✘]"
 
 def run_autopilot_pipeline():
-    """Trigger background pipeline execution with instant back-button support."""
+    """Trigger background pipeline execution and return instantly to menu."""
     print_tactical_header()
     print("=== AUTO-PILOT RECONNAISSANCE PIPELINE ===")
     print("Description: Runs multi-stage subnet discovery asynchronously.")
     print("-" * 55)
     
     if utils.PIPELINE_STATE == "RUNNING...":
-        print("[!] Pipeline is currently executing in the background...")
+        print("[!] Pipeline is already executing in the background...")
     else:
         print(f"Current Pipeline State: {utils.PIPELINE_STATE}")
-        choice = input("Launch pipeline in background? [y/N or 'b' to back]: ").strip().lower()
+        choice = input("Launch pipeline in background? [y/N]: ").strip().lower()
         if choice in ['y', 'yes']:
             t = threading.Thread(target=_background_pipeline_task, daemon=True)
             t.start()
-            print("[✔] Pipeline dispatched to background. Status will update under the banner.")
+            print("[✔] Pipeline dispatched to background. Status will update under banner.")
         else:
             print("[*] Returning to main menu.")
             
+    import time
+    time.sleep(1)
+    
+    
     input("\nPress Enter to return to main menu...")
