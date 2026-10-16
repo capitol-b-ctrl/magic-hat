@@ -300,9 +300,9 @@ def toggle_web_server():
         server_thread = threading.Thread(target=run_server, daemon=True)
         server_thread.start()
         running = True
-        utils.WEB_SERVER_ACTIVE = True  # Persist status under banner
+        utils.WEB_SERVER_ACTIVE = True
         print(f"\n[✔] Tactical Web Dashboard launched successfully at http://{host}:{port}")
-        input("Press Enter to return to main menu...
+        input("Press Enter to return to main menu...")
 
 def is_server_running():
     return running
