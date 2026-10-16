@@ -14,20 +14,53 @@ def parse_open_ports(nmap_output):
         open_ports.append({"port": port_proto, "service": service.strip()})
     return open_ports
 
+def parse_nmap_deep_telemetry(nmap_output):
+    """Extract open ports, services, OS hints, and MAC addresses from Nmap stdout."""
+    telemetry = {
+        "open_ports": [],
+        "os_guess": "Unknown / Not Detected",
+        "mac_address": "Unknown",
+        "device_type": "Unknown"
+    }
+    
+    # Parse open ports & services
+    port_pattern = re.compile(r"^(\d+/(?:tcp|udp))\s+open\s+([^\s]+)\s*(.*)$", re.MULTILINE)
+    for port_proto, service, desc in port_pattern.findall(nmap_output):
+        telemetry["open_ports"].append({"port": port_proto, "service": service.strip(), "details": desc.strip()})
+        
+    # Parse OS detection hints
+    os_pattern = re.compile(r"OS details:\s+(.*)$", re.MULTILINE)
+    os_match = os_pattern.search(nmap_output)
+    if os_match:
+        telemetry["os_guess"] = os_match.group(1).strip()
+    else:
+        running_pattern = re.compile(r"Running:\s+(.*)$", re.MULTILINE)
+        running_match = running_pattern.search(nmap_output)
+        if running_match:
+            telemetry["os_guess"] = running_match.group(1).strip()
+
+    # Parse MAC address & Vendor
+    mac_pattern = re.compile(r"MAC Address:\s+([0-9A-Fa-f:]+\s+\([^)]+\))", re.MULTILINE)
+    mac_match = mac_pattern.search(nmap_output)
+    if mac_match:
+        telemetry["mac_address"] = mac_match.group(1).strip()
+        
+    return telemetry
+
 def handle_nmap_menu():
-    """Interactive Nmap scan selection and execution menu."""
+    """Interactive Nmap scan selection and execution menu with deep target profiling."""
     while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print("=== PAGE: NMAP RECON SUITE ===")
-        print("-" * 45)
-        print("1. Quick Scan (-T4)")
-        print("2. Top 100 Ports + Version Detection (-sV --top-ports 100)")
-        print("3. Full Port Sweep (-p- -T4)")
-        print("4. Aggressive Scan (-A -T4)")
+        print("=== PAGE: NMAP DEEP RECON & TARGET PROFILER ===")
+        print("-" * 55)
+        print("1. Quick Port Scan (-T4)")
+        print("2. Service & Version Detection (-sV -T4)")
+        print("3. Comprehensive Target Profile (OS, Scripts, Versions: -A -sC -T4)")
+        print("4. Full Port Sweep (-p- -T4)")
         print("5. Custom Flags")
         print("99. Back to Suite Menu (b)")
-        print("-" * 45)
+        print("-" * 55)
         
         choice = input("Select profile [1-5, or 99/b]: ").strip().lower()
         if choice in ["99", "b", "back"]:
@@ -41,13 +74,13 @@ def handle_nmap_menu():
         if choice == "1":
             flags = ["-T4"]
         elif choice == "2":
-            flags = ["-sV", "--top-ports", "100"]
+            flags = ["-sV", "-T4"]
         elif choice == "3":
-            flags = ["-p-", "-T4"]
+            flags = ["-A", "-sC", "-T4"]  # Aggressive + Script scan + OS detection
         elif choice == "4":
-            flags = ["-A", "-T4"]
+            flags = ["-p-", "-T4"]
         elif choice == "5":
-            custom = input("Enter custom nmap arguments (e.g., -p 1-1000 -sS): ").strip()
+            custom = input("Enter custom nmap arguments (e.g., -p 1-1000 -O): ").strip()
             if custom.lower() in ["b", "99", "back"]:
                 continue
             flags = custom.split()
@@ -55,31 +88,37 @@ def handle_nmap_menu():
             input("Invalid selection! Press Enter to continue...")
             continue
             
-        print(f"\n[+] Conjuring Nmap scan on {target} with flags: {' '.join(flags)}")
-        print("[*] Scanning in progress...")
+        print(f"\n[+] Launching Nmap target profiler on {target} with flags: {' '.join(flags)}")
+        print("[*] Performing deep enumeration (this may take a moment)...")
         try:
             cmd = ["nmap"] + flags + [target]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             output = result.stdout
             
-            open_ports = parse_open_ports(output)
+            # Extract structured telemetry
+            telemetry = parse_nmap_deep_telemetry(output)
             
             clear_screen()
             print(BANNER_IMAGE)
-            print(f"=== NMAP SCAN RESULTS: {target} ===")
+            print(f"=== DEEP RECON REPORT: {target} ===")
             print("-" * 55)
-            if open_ports:
-                print(f"{'PORT/PROTO':<12} | {'SERVICE / VERSION'}")
+            print(f"[*] Target OS Guess : {telemetry['os_guess']}")
+            print(f"[*] MAC / Hardware  : {telemetry['mac_address']}")
+            print("-" * 55)
+            
+            if telemetry["open_ports"]:
+                print(f"{'PORT/PROTO':<12} | {'SERVICE':<15} | {'VERSION / DETAILS'}")
                 print("-" * 55)
-                for p in open_ports:
-                    print(f"{p['port']:<12} | {p['service']}")
+                for p in telemetry["open_ports"]:
+                    print(f"{p['port']:<12} | {p['service']:<15} | {p['details']}")
             else:
                 print("[*] Raw scan output (no standard ports parsed):")
                 print(output[:1500])
             print("-" * 55)
             
-            log_scan("Nmap Recon", target, output)
-            print("[✔] Scan results successfully logged to database.")
+            # Log scan with structured metadata for reporting and dashboard
+            log_scan("Nmap Deep Recon", target, output, metadata=telemetry)
+            print("[✔] Rich target profile logged successfully to database.")
         except subprocess.CalledProcessError as e:
             print(f"\n[-] Nmap failed: {e.stderr or str(e)}")
         except FileNotFoundError:
