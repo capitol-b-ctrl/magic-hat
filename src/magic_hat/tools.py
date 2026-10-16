@@ -9,6 +9,71 @@ from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_
 import qrcode  # Requires: pip install qrcode
 import socket
 
+def display_offensive_suite():
+    while True:
+        clear_screen()
+        print(BANNER_IMAGE)
+        print("=== OFFENSIVE & TACTICAL DEPLOYMENT SUITE ===")
+        print("-" * 55)
+        print("--- RECON & PROFILING ---")
+        print("1. Nmap Deep Recon & Target Profiler")
+        print("2. Net Shark Packet Capture (tshark)")
+        print("3. Web Directory Fuzzer (ffuf)")
+        print("4. DNS Footprinting (dig)")
+        print("5. Web Tech Stack Fingerprinting (whatweb)")
+        print("6. Wireless & RF Footprinting")
+        print("--- AUDITING & EXPLOITATION ---")
+        print("7. SSH & PowerShell Remote Auditors")
+        print("8. Hash Identifier & Cracking Assistant")
+        print("9. Exploit Database Search (searchsploit)")
+        print("10. Credential Service Auditor (hydra)")
+        print("--- TACTICAL DEPLOYMENT & UTILS ---")
+        print("11. Cryptographic Engine (Base64/XOR)")
+        print("12. Tactical Reverse Shell Generator")
+        print("13. ASCII QR Code Payload Generator")
+        print("14. Bluetooth Attack & SDP Suite")
+        print("15. Wireless Monitor Mode Manager")
+        print("16. Wordlist Manager")
+        print("99. Back to Lifecycle Menu (b)")
+        print("-" * 55)
+        
+        choice = input("Select tactical module [1-16, or 99/b]: ").strip().lower()
+        if choice in ["99", "b", "back"]:
+            break
+        elif choice == "1":
+            handle_nmap_menu()
+        elif choice == "2":
+            handle_net_shark()
+        elif choice == "3":
+            handle_web_fuzzer()
+        elif choice == "4":
+            handle_dns_recon()
+        elif choice == "5":
+            handle_tech_fingerprint()
+        elif choice == "6":
+            handle_wireless_recon()
+        elif choice == "7":
+            handle_ssh_audit()
+        elif choice == "8":
+            handle_hash_identifier()
+        elif choice == "9":
+            handle_exploit_search()
+        elif choice == "10":
+            handle_hydra_audit()
+        elif choice == "11":
+            handle_crypto_engine()
+        elif choice == "12":
+            handle_payload_generator()
+        elif choice == "13":
+            handle_qr_exploit()
+        elif choice == "14":
+            handle_bluetooth_attacks()
+        elif choice == "15":
+            handle_monitor_mode()
+        elif choice == "16":
+            handle_wordlist_manager()
+        else:
+            input("Invalid choice! Press Enter to try again...")
 
 def parse_open_ports(nmap_output):
     """Extract open ports and services from Nmap stdout using regex."""
@@ -567,63 +632,6 @@ def handle_subnet_sweep_tool():
         print(f"\n[-] Subnet sweep failed: {e}")
         
     input("\nPress Enter to return to main menu...")
-
-def handle_pentest_suite_menu():
-    """Parent menu for all offensive & administrative auditing modules."""
-    while True:
-        clear_screen()
-        print(BANNER_IMAGE)
-        print("=== OFFENSIVE & AUDITING SECURITY SUITE ===")
-        print("-" * 55)
-        print("1. Nmap Recon Suite")
-        print("2. Net Shark (Packet Capture / tshark)")
-        print("3. Web Directory Fuzzer (ffuf)")
-        print("4. DNS Footprinting (dig)")
-        print("5. Web Tech Fingerprint (whatweb)")
-        print("6. Subnet & ARP Discovery")
-        print("7. Wireless & RF Footprinting")
-        print("8. Hash Identifier & Audit Engine")
-        print("9. Exploit Search Engine (searchsploit)")
-        print("10. Credential Auditor (hydra)")
-        print("11. SSH Auditor & Remote Command Execution")
-        print("12. PowerShell Core & WinRM Auditor")
-        print("13. Automated Report Generator")
-        print("99. Return to Main Menu (b)")
-        print("-" * 55)
-        
-        choice = input("Select module [1-13, or 99/b]: ").strip().lower()
-        
-        if choice in ["99", "b", "back"]:
-            break
-        elif choice == "1":
-            handle_nmap_menu()
-        elif choice == "2":
-            handle_net_shark()
-        elif choice == "3":
-            handle_web_fuzzer()
-        elif choice == "4":
-            handle_dns_recon()
-        elif choice == "5":
-            handle_tech_fingerprint()
-        elif choice == "6":
-            handle_subnet_sweep()
-        elif choice == "7":
-            handle_wireless_recon()
-        elif choice == "8":
-            handle_hash_identifier()
-        elif choice == "9":
-            handle_exploit_search()
-        elif choice == "10":
-            handle_hydra_audit()
-        elif choice == "11":
-            handle_ssh_audit()
-        elif choice == "12":
-            handle_powershell_audit()
-        elif choice == "13":
-            from magic_hat.reports import handle_report_menu
-            handle_report_menu()
-        else:
-            input("Invalid choice! Press Enter to try again...")
             
 def handle_view_logs():
     """Display past scan logs stored in the database and view full output."""
@@ -934,7 +942,7 @@ def handle_bluetooth_recon():
             
     input("\nPress Enter to return...")
     
-    def handle_payload_generator():
+def handle_payload_generator():
     """Tool: Tactical Reverse Shell & Payload Generator."""
     clear_screen()
     print(BANNER_IMAGE)
@@ -1046,4 +1054,48 @@ def handle_bluetooth_attacks():
         except Exception as e:
             print(f"[-] l2ping attack failed: {e}")
             
+    input("\nPress Enter to return...")
+    
+
+def handle_crypto_engine():
+    """Tool: Cryptographic Encryption and Decryption Engine."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: CRYPTO & OBFUSCATION ENGINE ===")
+    print("-" * 55)
+    print("1. Base64 Encode / Decode")
+    print("2. Simple XOR Transformation")
+    print("99. Back to Suite Menu (b)")
+    print("-" * 55)
+    
+    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    if choice in ["99", "b", "back"]:
+        return
+        
+    if choice == "1":
+        mode = input("Choose mode - [e]ncode or [d]ecode: ").strip().lower()
+        text = input("Enter text input: ")
+        try:
+            if mode.startswith('e'):
+                res = base64.b64encode(text.encode('utf-8')).decode('utf-8')
+                print(f"\n[+] Encoded (Base64):\n{res}")
+                log_scan("Crypto Engine", "Base64 Encode", res)
+            else:
+                res = base64.b64decode(text.encode('utf-8')).decode('utf-8')
+                print(f"\n[+] Decoded (Base64):\n{res}")
+                log_scan("Crypto Engine", "Base64 Decode", res)
+        except Exception as e:
+            print(f"\n[-] Crypto operation failed: {e}")
+            
+    elif choice == "2":
+        text = input("Enter text: ")
+        key = input("Enter single character key: ")
+        if not key:
+            return
+        k = key[0]
+        output = "".join(chr(ord(c) ^ ord(k)) for c in text)
+        b64_out = base64.b64encode(output.encode('utf-8')).decode('utf-8')
+        print(f"\n[+] XOR Output (Base64 string): {b64_out}")
+        log_scan("Crypto Engine", "XOR Cipher", b64_out)
+        
     input("\nPress Enter to return...")

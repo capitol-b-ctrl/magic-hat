@@ -4,10 +4,29 @@ from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_
 import magic_hat.utils as utils
 
 from magic_hat.tools import (
+    display_offensive_suite,
     handle_wireless_bt_scanner,
     handle_subnet_sweep_tool,
-    handle_pentest_suite_menu,
-    handle_view_logs
+    handle_view_logs,
+    handle_nmap_menu,
+    handle_net_shark,
+    handle_web_fuzzer,
+    handle_dns_recon,
+    handle_tech_fingerprint,
+    handle_subnet_sweep,
+    handle_wireless_recon,
+    handle_hash_identifier,
+    handle_exploit_search,
+    handle_hydra_audit,
+    handle_ssh_audit,
+    handle_powershell_audit,
+    handle_monitor_mode,
+    handle_wordlist_manager,
+    handle_bluetooth_recon,
+    handle_crypto_engine,
+    handle_payload_generator,
+    handle_qr_exploit,
+    handle_bluetooth_attacks
 )
 from magic_hat.pipeline import run_autopilot_pipeline
 from magic_hat.server import toggle_web_server, is_server_running
@@ -61,7 +80,7 @@ def main():
         elif choice == "2":
             handle_subnet_sweep_tool()
         elif choice == "3":
-            handle_pentest_suite_menu()
+            display_offensive_suite()
         elif choice == "4":
             run_autopilot_pipeline()
         elif choice == "5":
