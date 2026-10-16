@@ -564,12 +564,12 @@ def handle_subnet_sweep_tool():
     input("\nPress Enter to return to main menu...")
 
 def handle_pentest_suite_menu():
-    """Parent menu for all offensive security modules."""
+    """Parent menu for all offensive & administrative auditing modules."""
     while True:
         clear_screen()
         print(BANNER_IMAGE)
-        print("=== OFFENSIVE SECURITY SUITE ===")
-        print("-" * 45)
+        print("=== OFFENSIVE & AUDITING SECURITY SUITE ===")
+        print("-" * 55)
         print("1. Nmap Recon Suite")
         print("2. Net Shark (Packet Capture / tshark)")
         print("3. Web Directory Fuzzer (ffuf)")
@@ -580,11 +580,13 @@ def handle_pentest_suite_menu():
         print("8. Hash Identifier & Audit Engine")
         print("9. Exploit Search Engine (searchsploit)")
         print("10. Credential Auditor (hydra)")
-        print("11. Automated Report Generator")
+        print("11. SSH Auditor & Remote Command Execution")
+        print("12. PowerShell Core & WinRM Auditor")
+        print("13. Automated Report Generator")
         print("99. Return to Main Menu (b)")
-        print("-" * 45)
+        print("-" * 55)
         
-        choice = input("Select module [1-11, or 99/b]: ").strip().lower()
+        choice = input("Select module [1-13, or 99/b]: ").strip().lower()
         
         if choice in ["99", "b", "back"]:
             break
@@ -609,11 +611,15 @@ def handle_pentest_suite_menu():
         elif choice == "10":
             handle_hydra_audit()
         elif choice == "11":
+            handle_ssh_audit()
+        elif choice == "12":
+            handle_powershell_audit()
+        elif choice == "13":
             from magic_hat.reports import handle_report_menu
             handle_report_menu()
         else:
             input("Invalid choice! Press Enter to try again...")
-
+            
 def handle_view_logs():
     """Display past scan logs stored in the database and view full output."""
     while True:
@@ -657,3 +663,127 @@ def handle_view_logs():
         else:
             print("\n[-] Invalid input. Please enter a numeric ID.")
             input("\nPress Enter to continue...")
+
+def handle_ssh_audit():
+    """Tool: SSH Remote Execution & Banner/Key Auditor."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: SSH AUDITOR & REMOTE ACCESS ===")
+    print("-" * 55)
+    
+    target = input("Enter target IP/hostname (or 'b' to back): ").strip()
+    if target.lower() in ["b", "99", "back", ""]:
+        return
+        
+    port = input("Enter SSH port [default 22]: ").strip() or "22"
+    user = input("Enter SSH username [default root]: ").strip() or "root"
+    
+    print("\nSelect Action:")
+    print("1. Audit Banner & Key Exchange Algorithms (ssh-keyscan)")
+    print("2. Test Remote SSH Interactive Connection")
+    print("3. Execute Single Remote Command")
+    
+    choice = input("Select action [1-3]: ").strip()
+    
+    if choice == "1":
+        print(f"\n[+] Querying SSH key signatures for {target}:{port}...")
+        try:
+            cmd = ["ssh-keyscan", "-p", port, target]
+            res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+            output = res.stdout if res.stdout else res.stderr
+            
+            clear_screen()
+            print(BANNER_IMAGE)
+            print(f"=== SSH KEYSCAN TELEMETRY: {target} ===")
+            print(output)
+            
+            log_scan("SSH Keyscan", f"{target}:{port}", output)
+            print("\n[✔] SSH key telemetry logged to database.")
+        except Exception as e:
+            print(f"\n[-] SSH keyscan failed: {e}")
+            
+    elif choice == "2":
+        print(f"\n[+] Spawning interactive SSH session to {user}@{target}:{port}...")
+        try:
+            subprocess.run(["ssh", "-p", port, f"{user}@{target}"])
+        except Exception as e:
+            print(f"\n[-] Interactive SSH failed: {e}")
+            
+    elif choice == "3":
+        remote_cmd = input("Enter remote command to execute: ").strip()
+        if remote_cmd:
+            print(f"\n[+] Executing '{remote_cmd}' on {target}...")
+            try:
+                cmd = ["ssh", "-p", port, f"{user}@{target}", remote_cmd]
+                res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
+                output = res.stdout
+                print(output)
+                log_scan("SSH Remote Exec", f"{user}@{target}", output)
+            except Exception as e:
+                print(f"\n[-] Remote command failed: {e}")
+                
+    input("\nPress Enter to return...")
+
+def handle_powershell_audit():
+    """Tool: PowerShell Core (pwsh) & WinRM Remote Management."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: POWERSHELL CORE & WINRM AUDITOR ===")
+    print("-" * 55)
+    
+    print("Select Mode:")
+    print("1. Run Local PowerShell Command / One-Liner (pwsh -c)")
+    print("2. WinRM Remote Query (WS-Man / Windows Hosts)")
+    print("99. Back (b)")
+    print("-" * 55)
+    
+    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    if choice in ["99", "b", "back"]:
+        return
+        
+    if choice == "1":
+        ps_cmd = input("Enter PowerShell command (e.g., Get-Process, $PSVersionTable): ").strip()
+        if not ps_cmd:
+            return
+            
+        print(f"\n[+] Executing PowerShell Core command...")
+        try:
+            cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", ps_cmd]
+            res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            output = res.stdout
+            
+            clear_screen()
+            print(BANNER_IMAGE)
+            print("=== POWERSHELL EXECUTION OUTPUT ===")
+            print(output)
+            
+            log_scan("PowerShell Command", "Local/Host", output)
+            print("\n[✔] PowerShell telemetry logged to database.")
+        except FileNotFoundError:
+            print("\n[-] Error: 'pwsh' binary not found. Install PowerShell Core (`pkg install powershell` or build binary).")
+        except Exception as e:
+            print(f"\n[-] PowerShell execution failed: {e}")
+            
+    elif choice == "2":
+        target = input("Enter Windows target IP/hostname: ").strip()
+        user = input("Enter Domain/Local Username: ").strip()
+        if not target or not user:
+            return
+            
+        ps_script = f"Invoke-Command -ComputerName '{target}' -Credential '{user}' -ScriptBlock {{ Get-ComputerInfo }}"
+        print(f"\n[+] Invoking WinRM remote assessment against {target}...")
+        try:
+            cmd = ["pwsh", "-NoProfile", "-Command", ps_script]
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            print(res.stdout if res.stdout else res.stderr)
+            log_scan("PowerShell WinRM Audit", target, res.stdout)
+        except FileNotFoundError:
+            print("\n[-] Error: 'pwsh' binary not found. Install PowerShell Core in your environment.")
+        except Exception as e:
+            print(f"\n[-] WinRM query failed: {e}")
+            
+    input("\nPress Enter to return...")
+    
+    
+    
+    
