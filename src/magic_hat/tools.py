@@ -1,5 +1,7 @@
 """Offensive security tool execution handlers and loggers for Magic Hat."""
 
+
+import shutil
 import subprocess
 import re
 from magic_hat.database import log_scan, get_scan_logs, get_connection
@@ -731,6 +733,13 @@ def handle_powershell_audit():
     print("=== PAGE: POWERSHELL CORE & WINRM AUDITOR ===")
     print("-" * 55)
     
+    if not shutil.which("pwsh"):
+        print("\n[-] Notice: 'pwsh' (PowerShell Core) binary is not installed in this environment.")
+        print("[*] To install in Termux: `pkg install powershell` (if available for your arch).")
+        print("[*] Alternatively, use WinRM to target remote Windows hosts from an external controller.")
+        input("\nPress Enter to return...")
+        return
+
     print("Select Mode:")
     print("1. Run Local PowerShell Command / One-Liner (pwsh -c)")
     print("2. WinRM Remote Query (WS-Man / Windows Hosts)")
@@ -742,48 +751,73 @@ def handle_powershell_audit():
         return
         
     if choice == "1":
-        ps_cmd = input("Enter PowerShell command (e.g., Get-Process, $PSVersionTable): ").strip()
+        ps_cmd = input("Enter PowerShell command: ").strip()
         if not ps_cmd:
             return
-            
-        print(f"\n[+] Executing PowerShell Core command...")
         try:
             cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", ps_cmd]
             res = subprocess.run(cmd, capture_output=True, text=True, check=True)
-            output = res.stdout
-            
             clear_screen()
             print(BANNER_IMAGE)
             print("=== POWERSHELL EXECUTION OUTPUT ===")
-            print(output)
-            
-            log_scan("PowerShell Command", "Local/Host", output)
-            print("\n[✔] PowerShell telemetry logged to database.")
-        except FileNotFoundError:
-            print("\n[-] Error: 'pwsh' binary not found. Install PowerShell Core (`pkg install powershell` or build binary).")
+            print(res.stdout)
+            log_scan("PowerShell Command", "Local Host", res.stdout)
         except Exception as e:
             print(f"\n[-] PowerShell execution failed: {e}")
             
-    elif choice == "2":
-        target = input("Enter Windows target IP/hostname: ").strip()
-        user = input("Enter Domain/Local Username: ").strip()
-        if not target or not user:
-            return
-            
-        ps_script = f"Invoke-Command -ComputerName '{target}' -Credential '{user}' -ScriptBlock {{ Get-ComputerInfo }}"
-        print(f"\n[+] Invoking WinRM remote assessment against {target}...")
-        try:
-            cmd = ["pwsh", "-NoProfile", "-Command", ps_script]
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            print(res.stdout if res.stdout else res.stderr)
-            log_scan("PowerShell WinRM Audit", target, res.stdout)
-        except FileNotFoundError:
-            print("\n[-] Error: 'pwsh' binary not found. Install PowerShell Core in your environment.")
-        except Exception as e:
-            print(f"\n[-] WinRM query failed: {e}")
-            
     input("\nPress Enter to return...")
+
+def handle_wireless_recon():
+    """Tool: Wireless & RF Footprinting with fallback interface checks."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== PAGE: WIRELESS & RF FOOTPRINTING ===")
+    print("-" * 55)
+    print("1. List Wireless Interfaces & Status (iw / nmcli / ip link)")
+    print("2. Scan Nearby Wi-Fi Networks")
+    print("99. Back to Suite Menu (b)")
+    print("-" * 55)
     
+    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    if choice in ["99", "b", "back"]:
+        return
+        
+    output = ""
+    if choice == "1":
+        print("\n[+] Querying wireless subsystem...")
+        try:
+            if shutil.which("iw"):
+                res = subprocess.run(["iw", "dev"], capture_output=True, text=True, check=True)
+                output = res.stdout
+            elif shutil.which("nmcli"):
+                res = subprocess.run(["nmcli", "device", "wifi"], capture_output=True, text=True, check=True)
+                output = res.stdout
+            elif shutil.which("ip"):
+                res = subprocess.run(["ip", "link"], capture_output=True, text=True, check=True)
+                output = "[*] 'iw' and 'nmcli' not found in sandbox. Fallback to system network links:\n" + res.stdout
+            else:
+                output = "[-] No wireless control binaries (iw, nmcli) or ip tools found in environment."
+        except Exception as e:
+            output = f"[-] Wireless query failed: {e}"
+            
+    elif choice == "2":
+        print("\n[+] Scanning nearby Wi-Fi networks...")
+        try:
+            if shutil.which("nmcli"):
+                res = subprocess.run(["nmcli", "device", "wifi", "list"], capture_output=True, text=True, check=True)
+                output = res.stdout
+            else:
+                output = "[-] Wi-Fi scanner ('nmcli') requires NetworkManager daemon, which is restricted in Termux without root/proot."
+        except Exception as e:
+            output = f"[-] Wi-Fi scan failed: {e}"
+            
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== WIRELESS / RF TELEMETRY ===")
+    print(output)
+    log_scan("Wireless Recon", "Airspace", output)
+    input("\nPress Enter to return...")
+
 def handle_monitor_mode():
     """Hardware Tool: Toggle wireless interface monitor mode via airmon-ng or iwconfig."""
     clear_screen()
