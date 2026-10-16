@@ -4,4 +4,8 @@
   "server_host": "127.0.0.1",
   "server_port": 8080,
   "required_binaries": ["nmap", "tshark", "ffuf", "dig", "searchsploit"]
+  "default_wordlist": "common.txt",
+  "webhook_url": "",
+  "telegram_bot_token": "",
+  "telegram_chat_id": ""
 }

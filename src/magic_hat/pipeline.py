@@ -1,5 +1,6 @@
 """Automated multi-stage reconnaissance pipeline for Magic Hat."""
 
+import time
 import threading
 import subprocess
 from magic_hat.database import log_scan
@@ -7,7 +8,7 @@ from magic_hat.utils import get_all_device_ips, get_subnet_range, print_tactical
 import magic_hat.utils as utils
 
 def _background_pipeline_task():
-    """Execute multi-stage discovery in a background daemon thread."""
+    """Execute multi-stage discovery in a background daemon thread with notifications."""
     utils.PIPELINE_STATE = "RUNNING..."
     try:
         ips = get_all_device_ips()
@@ -26,8 +27,10 @@ def _background_pipeline_task():
             log_scan("Pipeline Stage 2: Port Scan", subnet, res2.stdout)
             
         utils.PIPELINE_STATE = "COMPLETED [✔]"
+        utils.send_notification("Auto-Pilot Reconnaissance Pipeline completed successfully!")
     except Exception as e:
         utils.PIPELINE_STATE = f"FAILED [✘]"
+        utils.send_notification(f"Auto-Pilot Reconnaissance Pipeline failed: {e}")
 
 def run_autopilot_pipeline():
     """Trigger background pipeline execution and return instantly to menu."""
@@ -53,3 +56,17 @@ def run_autopilot_pipeline():
     
     
     input("\nPress Enter to return to main menu...")
+
+@app.route('/api/stream')
+def api_stream():
+    """Stream live telemetry events to the web dashboard in real-time."""
+def event_stream():
+        last_id = 0
+        while True:
+            logs = get_scan_logs()
+            if logs and logs[0]['id'] > last_id:
+                latest = logs[0]
+                last_id = latest['id']
+                yield f"data: {json.dumps(latest)}\n\n"
+            time.sleep(2)
+    return app.response_class(event_stream(), mimetype='text/event-stream')

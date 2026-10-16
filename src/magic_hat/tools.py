@@ -854,3 +854,46 @@ def handle_wordlist_manager():
         
     input("\nPress Enter to return...")
     
+def handle_bluetooth_recon():
+    """Tool: Bluetooth & BLE Airspace Mapping."""
+    clear_screen()
+    print(BANNER_IMAGE)
+    print("=== BLUETOOTH & BLE AIRSPACE RECON ===")
+    print("-" * 55)
+    print("1. Scan Classic Bluetooth Devices (hcitool scan)")
+    print("2. Scan BLE Devices (bluetoothctl scan le)")
+    print("99. Back (b)")
+    print("-" * 55)
+    
+    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    if choice in ["99", "b", "back"]:
+        return
+        
+    if choice == "1":
+        print("\n[+] Scanning for classic Bluetooth devices...")
+        try:
+            res = subprocess.run(["hcitool", "scan"], capture_output=True, text=True, timeout=15)
+            output = res.stdout if res.stdout else res.stderr
+            clear_screen()
+            print(BANNER_IMAGE)
+            print("=== CLASSIC BLUETOOTH SCAN RESULTS ===")
+            print(output)
+            log_scan("Bluetooth Scan", "Airspace", output)
+        except Exception as e:
+            print(f"[-] Bluetooth scan failed (ensure HCI interface is up): {e}")
+            
+    elif choice == "2":
+        print("\n[+] Scanning BLE beacons and devices (10s timeout)...")
+        try:
+            res = subprocess.run(["bluetoothctl", "scan", "le"], capture_output=True, text=True, timeout=10)
+            output = res.stdout
+            clear_screen()
+            print(BANNER_IMAGE)
+            print("=== BLE SCAN RESULTS ===")
+            print(output)
+            log_scan("BLE Scan", "Airspace", output)
+        except Exception as e:
+            print(f"[-] BLE scan failed: {e}")
+            
+    input("\nPress Enter to return...")
+    

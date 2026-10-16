@@ -143,3 +143,30 @@ def print_tactical_header():
     pipe_status = PIPELINE_STATE
     print(f"[*] Status -> Web Server: {srv_status} | Pipeline: {pipe_status}")
     print("-" * 55)
+    
+def send_notification(message):
+    """Dispatch status notifications via Webhook or Telegram if configured."""
+    config = load_config()
+    webhook = config.get("webhook_url", "").strip()
+    tg_token = config.get("telegram_bot_token", "").strip()
+    tg_chat = config.get("telegram_chat_id", "").strip()
+    
+    if webhook:
+        try:
+            req = urllib.request.Request(
+                webhook, 
+                data=json.dumps({"text": message}).encode('utf-8'), 
+                headers={'Content-Type': 'application/json'}
+            )
+            urllib.request.urlopen(req, timeout=5)
+        except Exception:
+            pass
+            
+    if tg_token and tg_chat:
+        try:
+            url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+            payload = json.dumps({"chat_id": tg_chat, "text": f"[MAGIC HAT] {message}"}).encode('utf-8')
+            req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
+            urllib.request.urlopen(req, timeout=5)
+        except Exception:
+            pass
