@@ -4,6 +4,7 @@ import sqlite3
 import os
 import json
 from datetime import datetime
+from magic_hat.utils import Colors
 
 DB_PATH = os.path.expanduser("~/magic_hat_telemetry.db")
 

@@ -1,18 +1,13 @@
-#src/magic_hat/utils.py
-"""Utility functions and global constants for Magic Hat."""
+"""Utility functions, configuration loaders, and tactical headers for Magic Hat."""
 
-import socket
-import subprocess
-import re
-import urllib.request
-import json
 import os
-import ipaddress
+import json
 import shutil
+import subprocess
+import urllib.request
 
-# Global persistent state flags
-WEB_SERVER_ACTIVE = False
-PIPELINE_STATE = "IDLE"
+# Framework-wide Global States
+PIPELINE_STATE = "READY"
 BANNER_IMAGE = r"""
 
 
@@ -44,108 +39,117 @@ BANNER_IMAGE = r"""
 / /\ \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \.. \/\ \
 \ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `'\ `' /
  `--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'`--'
-	RADtheMAGICIAN  v0.3.0
+	RADtheMAGICIAN  v0.4.0
 
 """
 
+class Colors:
+    HEADER = '\033[95m'
+    BLUE = '\033[94m'
+    CYAN = '\033[96m'
+    GREEN = '\033[92m'    # For success messages [✔]
+    YELLOW = '\033[93m'   # For warnings/notices [!]
+    RED = '\033[91m'      # For errors/failures [✘]
+    ENDC = '\033[0m'      # Resets color back to default
+    BOLD = '\033[1m'
+    DIM = '\033[2m'
 
 
 def clear_screen():
-    """Clear terminal screen safely."""
-    os.system("cls" if os.name == "nt" else "clear")
+    """Clear terminal screen across platforms."""
+    os.system('cls' if os.name == 'nt' else 'clear')
 
 def load_config():
-    """Load centralized configuration from config.json."""
-    config_path = os.path.join(os.getcwd(), "config.json")
+    """Load configuration variables from config.json with safe defaults."""
     default_config = {
-        "default_subnet": "192.168.1.0/24",
-        "default_wordlist": "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt",
         "server_host": "127.0.0.1",
         "server_port": 8080,
-        "required_binaries": ["nmap", "tshark", "ffuf", "dig", "searchsploit", "qrcode"]
+        "default_wordlist": "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt",
+        "webhook_url": "",
+        "telegram_bot_token": "",
+        "telegram_chat_id": ""
     }
-    if os.path.exists(config_path):
+    
+    if os.path.exists("config.json"):
         try:
-            with open(config_path, "r") as f:
-                return json.load(f)
-        except Exception:
-            return default_config
+            with open("config.json", "r") as f:
+                user_config = json.load(f)
+                default_config.update(user_config)
+        except Exception as e:
+            print(f"{Colors.RED}[-] Warning: Failed to read config.json, using defaults: {e}{Colors.ENDC}")
+            
     return default_config
 
-def clear_screen():
-    """Clear terminal screen safely."""
-    os.system("cls" if os.name == "nt" else "clear")
+def print_tactical_header():
+    """Render persistent tactical status bar with embedded ANSI color indicators."""
+    from magic_hat.server import is_server_running
+    
+    # Embed dynamic color indicators for server state
+    if is_server_running():
+        srv_status = f"{Colors.GREEN}[ONLINE]{Colors.ENDC}"
+    else:
+        srv_status = f"{Colors.RED}[OFFLINE]{Colors.ENDC}"
+        
+    print("-" * 60)
+    print(f" [*] Local Web Dashboard : {srv_status}")
+    print(f" [*] Background Pipeline : {Colors.CYAN}{PIPELINE_STATE}{Colors.ENDC}")
+    print("-" * 60)
 
 def get_all_device_ips():
-    """Detect active network interfaces and their IP addresses."""
-    ips = []
+    """Retrieve active local network interfaces and assigned IP addresses."""
+    interfaces = []
     try:
-        import subprocess
-        result = subprocess.run(["ip", "addr"], capture_output=True, text=True)
-        for line in result.stdout.splitlines():
-            if "inet " in line and "127.0.0.1" not in line:
-                parts = line.strip().split()
-                for part in parts:
-                    if "/" in part:
-                        ips.append(("network", part))
-        if not ips:
-            ips.append(("default", "192.168.1.139/24"))
+        # Check using standard 'ip' command
+        if shutil.which("ip"):
+            res = subprocess.run(["ip", "-o", "-4", "addr", "show"], capture_output=True, text=True)
+            for line in res.stdout.strip().split("\n"):
+                parts = line.split()
+                if len(parts) >= 4:
+                    iface = parts[1]
+                    ip_cidr = parts[3]
+                    if iface != "lo":
+                        interfaces.append((iface, ip_cidr))
+        # Fallback to 'ifconfig' if 'ip' is unavailable
+        elif shutil.which("ifconfig"):
+            res = subprocess.run(["ifconfig"], capture_output=True, text=True)
+            # Basic parsing for wlan0 / rmnet / bridge
+            for block in res.stdout.split("\n\n"):
+                if "inet " in block:
+                    lines = block.split("\n")
+                    iface = lines[0].split(":")[0].strip()
+                    if iface != "lo":
+                        for l in lines:
+                            if "inet " in l:
+                                ip = l.split("inet ")[1].split()[0]
+                                interfaces.append((iface, f"{ip}/24"))
     except Exception:
-        ips.append(("default", "192.168.1.139/24"))
-    return ips
+        pass
+    return interfaces
+
 
 def get_subnet_range(ip_cidr):
-    """Calculate the network host space/subnet from a CIDR IP string."""
-    try:
-        net = ipaddress.ip_network(ip_cidr, strict=False)
-        return str(net)
-    except Exception:
-        return "192.168.1.0/24"
+    """Compute base subnet range string from IP CIDR notation."""
+    if "/" in ip_cidr:
+        ip = ip_cidr.split("/")[0]
+        octets = ip.split(".")
+        if len(octets) == 4:
+            return f"{octets[0]}.{octets[1]}.{octets[2]}.0/24"
+    return "192.168.1.0/24"
 
 def check_dependencies():
-    """Verify presence of core security binaries in system PATH."""
-    config = load_config()
-    binaries = config.get("required_binaries", ["nmap", "tshark", "ffuf", "dig", "searchsploit"])
+    """Verify required system utilities and display environmental readiness."""
+    tools = ["nmap", "ffuf", "dig", "whatweb", "tshark", "ssh", "hydra", "pwsh", "sdptool", "l2ping"]
+    print("=== ENVIRONMENT DEPENDENCY AUDIT ===".center(60))
+    print("-" * 60)
     
-    print("[*] Performing pre-flight dependency check...")
-    missing = []
-    for binary in binaries:
-        path = shutil.which(binary)
-        if path:
-            print(f"    [✔] {binary:<15} -> {path}")
-        else:
-            print(f"    [✘] {binary:<15} -> NOT FOUND")
-            missing.append(binary)
-            
-    if missing:
-        print(f"\n[!] Warning: Missing binaries: {', '.join(missing)}")
-        print("[!] Some modules may fail unless installed via 'pkg install'.")
-    else:
-        print("\n[✔] All core dependencies verified successfully!")
-    input("\nPress Enter to continue...")
+    for tool in tools:
+        found = shutil.which(tool) is not None
+        status = f"{Colors.GREEN}[FOUND]{Colors.ENDC}" if found else f"{Colors.RED}[MISSING]{Colors.ENDC}"
+        print(f"  * {tool:<15} : {status}")
+    print("-" * 60)
 
-def send_webhook_notification(title, message):
-    """Optional webhook notification helper."""
-    pass
-
-def print_tactical_header():
-    """Print banner, active network spaces, and persistent system statuses."""
-    clear_screen()
-    print(BANNER_IMAGE)
-    ips = get_all_device_ips()
-    if ips:
-        print("[*] Active Interfaces & Host Spaces:")
-        for iface, ip_cidr in ips:
-            subnet = get_subnet_range(ip_cidr)
-            print(f"    - IP: {ip_cidr} | Subnet Space: {subnet}")
-    
-    srv_status = "[ONLINE]" if WEB_SERVER_ACTIVE else "[OFFLINE]"
-    pipe_status = PIPELINE_STATE
-    print(f"[*] Status -> Web Server: {srv_status} | Pipeline: {pipe_status}")
-    print("." * 60)
-    
 def send_notification(message):
-    """Dispatch status notifications via Webhook or Telegram if configured."""
+    """Dispatch status alerts to Webhook or Telegram if endpoints are configured."""
     config = load_config()
     webhook = config.get("webhook_url", "").strip()
     tg_token = config.get("telegram_bot_token", "").strip()

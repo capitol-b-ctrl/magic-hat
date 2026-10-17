@@ -2,13 +2,14 @@
 
 import threading
 import subprocess
+import time
 from magic_hat.database import log_scan
-from magic_hat.utils import get_all_device_ips, get_subnet_range, print_tactical_header
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_subnet_range, print_tactical_header, Colors
 import magic_hat.utils as utils
 
 def _background_pipeline_task():
     """Execute multi-stage discovery in a background daemon thread with notifications."""
-    utils.PIPELINE_STATE = "RUNNING..."
+    utils.PIPELINE_STATE = f"{Colors.YELLOW}RUNNING...{Colors.ENDC}"
     try:
         ips = get_all_device_ips()
         if ips:
@@ -25,30 +26,33 @@ def _background_pipeline_task():
             res2 = subprocess.run(cmd2, capture_output=True, text=True, check=True)
             log_scan("Pipeline Stage 2: Port Scan", subnet, res2.stdout)
             
-        utils.PIPELINE_STATE = "COMPLETED [✔]"
+        utils.PIPELINE_STATE = f"{Colors.GREEN}COMPLETED [✔]{Colors.ENDC}"
         utils.send_notification("Auto-Pilot Reconnaissance Pipeline completed successfully!")
     except Exception as e:
-        utils.PIPELINE_STATE = f"FAILED [✘]"
+        utils.PIPELINE_STATE = f"{Colors.RED}FAILED [✘]{Colors.ENDC}"
         utils.send_notification(f"Auto-Pilot Reconnaissance Pipeline failed: {e}")
 
 def run_autopilot_pipeline():
     """Trigger background pipeline execution and return instantly to menu."""
+    clear_screen()
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("         === AUTO-PILOT RECONNAISSANCE PIPELINE ===")
-    print("Description: Runs multi-stage subnet discovery asynchronously.")
-    print("=" * 60)
+    print("=== AUTO-PILOT RECONNAISSANCE PIPELINE ===".center(60))
+    print("-" * 60)
+    print(f"{Colors.DIM}Description: Runs multi-stage subnet discovery asynchronously.{Colors.ENDC}")
+    print("-" * 60)
     
-    if utils.PIPELINE_STATE == "RUNNING...":
-        print("[!] Pipeline is already executing in the background...")
+    if "RUNNING..." in utils.PIPELINE_STATE:
+        print(f"{Colors.YELLOW}[!] Pipeline is already executing in the background...{Colors.ENDC}")
     else:
-        print(f"Current Pipeline State: {utils.PIPELINE_STATE}")
-        choice = input("Launch pipeline in background? [y/N]: ").strip().lower()
+        print(f"[*] Current Pipeline State: {utils.PIPELINE_STATE}")
+        choice = input(f"{Colors.YELLOW}Launch pipeline in background? [y/N]: {Colors.ENDC}").strip().lower()
         if choice in ['y', 'yes']:
             t = threading.Thread(target=_background_pipeline_task, daemon=True)
             t.start()
-            print("[✔] Pipeline dispatched to background. Status will update under banner.")
+            print(f"{Colors.GREEN}[✔] Pipeline dispatched to background. Status will update under banner.{Colors.ENDC}")
         else:
-            print("[*] Returning to main menu.")
+            print(f"{Colors.YELLOW}[*] Returning to main menu.{Colors.ENDC}")
             
-    import time
     time.sleep(1)
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")

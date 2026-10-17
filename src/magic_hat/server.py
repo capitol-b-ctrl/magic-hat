@@ -6,7 +6,7 @@ import threading
 import subprocess
 from flask import Flask, render_template_string, jsonify, request
 from magic_hat.database import get_scan_logs, get_connection
-from magic_hat.utils import load_config
+from magic_hat.utils import load_config, Colors
 
 app = Flask(__name__)
 server_thread = None
@@ -312,13 +312,13 @@ def toggle_web_server():
     port = config.get("server_port", 8080)
 
     if running:
-        print("\n[*] Web dashboard is already running in the background.")
+        print(f"\n{Colors.YELLOW}[*] Web dashboard is already running in the background.{Colors.ENDC}")
     else:
         server_thread = threading.Thread(target=run_server, daemon=True)
         server_thread.start()
         running = True
         utils.WEB_SERVER_ACTIVE = True
-        print(f"\n[✔] Tactical Web Dashboard launched at http://{host}:{port}")
+        print(f"\n{Colors.GREEN}[✔] Tactical Web Dashboard launched at http://{host}:{port}{Colors.ENDC}")
     
     # Return immediately to main menu without blocking input
     import time
@@ -326,8 +326,3 @@ def toggle_web_server():
 
 def is_server_running():
     return running
-    
-    
-    
-    
-    

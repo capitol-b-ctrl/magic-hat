@@ -1,22 +1,22 @@
-
 """Automated Markdown and JSON report generator for Magic Hat security engagements."""
 
 import os
 import json
 from magic_hat.database import get_connection, get_scan_logs
-from magic_hat.utils import clear_screen, BANNER_IMAGE
+from magic_hat.utils import clear_screen, BANNER_IMAGE, print_tactical_header, Colors
 
 def export_engagement_report():
     """Export all SQLite scan logs into a structured Markdown and JSON report."""
     clear_screen()
-    print(BANNER_IMAGE)
-    print("       === AUTOMATED ENGAGEMENT REPORT GENERATOR ===")
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+    print_tactical_header()
+    print("=== ENGAGEMENT REPORT GENERATOR ===".center(60))
     print("-" * 60)
     
     logs = get_scan_logs()
     if not logs:
-        print("[-] No scan logs found to export.")
-        input("\nPress Enter to return...")
+        print(f"{Colors.RED}[-] No scan logs found to export.{Colors.ENDC}")
+        input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
         return
         
     report_filename = os.path.expanduser("~/magic_hat_engagement_report.md")
@@ -48,24 +48,26 @@ def export_engagement_report():
             mf.write("```text\n" + str(item['output'])[:2000] + "\n```\n\n")
             mf.write("---\n\n")
             
-    print(f"[✔] Markdown Report successfully exported to: {report_filename}")
-    print(f"[✔] JSON Telemetry successfully exported to: {json_filename}")
-    input("\nPress Enter to return...")
+    print(f"{Colors.GREEN}[✔] Markdown Report successfully exported to: {report_filename}{Colors.ENDC}")
+    print(f"{Colors.GREEN}[✔] JSON Telemetry successfully exported to: {json_filename}{Colors.ENDC}")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_report_menu():
     """Report management interface."""
     while True:
         clear_screen()
-        print(BANNER_IMAGE)
-        print("           === REPORT GENERATION & EXPORT MENU ===")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print_tactical_header()
+        print("=== REPORT GENERATION & EXPORT MENU ===".center(60))
         print("-" * 60)
         print("1. Export Full Engagement Report (Markdown & JSON)")
-        print("99. Back to Main Menu (b)")
+        print(f"{Colors.RED}99. Back to Main Menu (b){Colors.ENDC}".center(68, " "))
         print("-" * 60)
-        choice = input("Select option [1, or 99/b]: ").strip().lower()
+        
+        choice = input(f"{Colors.YELLOW}Select option [1, or 99/b]: {Colors.ENDC}").strip().lower()
         if choice in ["99", "b", "back"]:
             break
         elif choice == "1":
             export_engagement_report()
         else:
-            input("Invalid selection! Press Enter...")
+            input(f"{Colors.RED}Invalid selection! Press Enter...{Colors.ENDC}")

