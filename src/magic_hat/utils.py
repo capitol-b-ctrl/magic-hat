@@ -81,25 +81,34 @@ def load_config():
     return default_config
 
 def print_tactical_header():
-    """Render persistent tactical status bar with embedded ANSI color indicators."""
+    """Render persistent tactical status bar with host IP and embedded ANSI indicators."""
     from magic_hat.server import is_server_running
     
-    # Embed dynamic color indicators for server state
+    # Server status indicator
     if is_server_running():
         srv_status = f"{Colors.GREEN}[ONLINE]{Colors.ENDC}"
     else:
         srv_status = f"{Colors.RED}[OFFLINE]{Colors.ENDC}"
         
+    # Get primary host IP
+    ips = get_all_device_ips()
+    if ips:
+        primary_iface, primary_ip_cidr = ips[0]
+        host_ip_str = f"{Colors.GREEN}{primary_ip_cidr}{Colors.ENDC} ({primary_iface})"
+    else:
+        host_ip_str = f"{Colors.RED}Not Connected{Colors.ENDC}"
+
     print("-" * 60)
+    print(f" [*] Host Device IP    : {host_ip_str}")
     print(f" [*] Local Web Dashboard : {srv_status}")
     print(f" [*] Background Pipeline : {Colors.CYAN}{PIPELINE_STATE}{Colors.ENDC}")
     print("-" * 60)
-
+    
+    
 def get_all_device_ips():
     """Retrieve active local network interfaces and assigned IP addresses."""
     interfaces = []
     try:
-        # Check using standard 'ip' command
         if shutil.which("ip"):
             res = subprocess.run(["ip", "-o", "-4", "addr", "show"], capture_output=True, text=True)
             for line in res.stdout.strip().split("\n"):
@@ -109,23 +118,9 @@ def get_all_device_ips():
                     ip_cidr = parts[3]
                     if iface != "lo":
                         interfaces.append((iface, ip_cidr))
-        # Fallback to 'ifconfig' if 'ip' is unavailable
-        elif shutil.which("ifconfig"):
-            res = subprocess.run(["ifconfig"], capture_output=True, text=True)
-            # Basic parsing for wlan0 / rmnet / bridge
-            for block in res.stdout.split("\n\n"):
-                if "inet " in block:
-                    lines = block.split("\n")
-                    iface = lines[0].split(":")[0].strip()
-                    if iface != "lo":
-                        for l in lines:
-                            if "inet " in l:
-                                ip = l.split("inet ")[1].split()[0]
-                                interfaces.append((iface, f"{ip}/24"))
     except Exception:
         pass
     return interfaces
-
 
 def get_subnet_range(ip_cidr):
     """Compute base subnet range string from IP CIDR notation."""
