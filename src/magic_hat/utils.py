@@ -1,5 +1,8 @@
 """Utility functions, configuration loaders, and tactical headers for Magic Hat."""
 
+
+import sys
+import argparse
 import os
 import json
 import shutil
@@ -80,30 +83,6 @@ def load_config():
             
     return default_config
 
-def print_tactical_header():
-    """Render persistent tactical status bar with host IP and embedded ANSI indicators."""
-    from magic_hat.server import is_server_running
-    
-    # Server status indicator
-    if is_server_running():
-        srv_status = f"{Colors.GREEN}[ONLINE]{Colors.ENDC}"
-    else:
-        srv_status = f"{Colors.RED}[OFFLINE]{Colors.ENDC}"
-        
-    # Get primary host IP
-    ips = get_all_device_ips()
-    if ips:
-        primary_iface, primary_ip_cidr = ips[0]
-        host_ip_str = f"{Colors.GREEN}{primary_ip_cidr}{Colors.ENDC} ({primary_iface})"
-    else:
-        host_ip_str = f"{Colors.RED}Not Connected{Colors.ENDC}"
-
-    print("-" * 60)
-    print(f" [*] Host Device IP    : {host_ip_str}")
-    print(f" [*] Local Web Dashboard : {srv_status}")
-    print(f" [*] Background Pipeline : {Colors.CYAN}{PIPELINE_STATE}{Colors.ENDC}")
-    print("-" * 60)
-    
     
 def get_all_device_ips():
     """Retrieve active local network interfaces and assigned IP addresses."""
@@ -169,3 +148,35 @@ def send_notification(message):
             urllib.request.urlopen(req, timeout=5)
         except Exception:
             pass
+        
+def print_tactical_header():
+    """Render persistent tactical status bar with host IP and embedded ANSI indicators."""
+    from magic_hat.server import is_server_running
+    
+    # Server status indicator
+    if is_server_running():
+        srv_status = f"{Colors.GREEN}[ONLINE]{Colors.ENDC}"
+    else:
+        srv_status = f"{Colors.RED}[OFFLINE]{Colors.ENDC}"
+        
+    # Get primary host IP safely
+    ips = get_all_device_ips()
+    if ips:
+        primary_iface, primary_ip_cidr = ips[0]
+        host_ip_str = f"{Colors.GREEN}{primary_ip_cidr}{Colors.ENDC} ({primary_iface})"
+    else:
+        host_ip_str = f"{Colors.RED}Not Connected{Colors.ENDC}"
+
+    print("-" * 60)
+    print(f" [*] Host Device IP      : {host_ip_str}")
+    print(f" [*] Local Web Dashboard : {srv_status}")
+    print(f" [*] Background Pipeline : {Colors.CYAN}{PIPELINE_STATE}{Colors.ENDC}")
+    print("-" * 60)
+    
+    if ips:
+        print(f" {Colors.YELLOW}[*] Active Interfaces & Host Spaces:{Colors.ENDC}")
+        for iface, ip_cidr in ips:
+            subnet = get_subnet_range(ip_cidr)
+            print(f"    - [{iface}] IP: {ip_cidr} | Subnet: {subnet}")
+        print("-" * 60)
+    

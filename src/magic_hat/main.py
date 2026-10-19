@@ -1,7 +1,23 @@
 import sys
 import argparse
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, get_subnet_range, check_dependencies, load_config, print_tactical_header
 import magic_hat.utils as utils
+import os
+import json
+import shutil
+import subprocess
+import urllib.request
+
+from magic_hat.utils import (
+    BANNER_IMAGE,
+    clear_screen, 
+    get_all_device_ips, 
+    get_subnet_range, 
+    check_dependencies, 
+    load_config, 
+    print_tactical_header,
+    Colors, 
+    send_notification
+)
 
 from magic_hat.tools import (
     display_offensive_suite,
@@ -31,7 +47,7 @@ from magic_hat.tools import (
 from magic_hat.pipeline import run_autopilot_pipeline
 from magic_hat.server import toggle_web_server, is_server_running
 from magic_hat.reports import handle_report_menu
-from magic_hat.utils import Colors, send_notification
+
 
 
 def display_lifecycle_menu():
@@ -64,12 +80,6 @@ def main():
     while True:
         clear_screen()
         print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-        
-        ips = get_all_device_ips()
-        print("[*] Active Interfaces & Host Spaces:")
-        for iface, ip_cidr in ips:
-            subnet = get_subnet_range(ip_cidr)
-            print(f"    - IP: {ip_cidr} | Subnet Space: {subnet}")
         
         srv_status = f"{Colors.GREEN}=[ONLINE]{Colors.ENDC}" if is_server_running() else f"{Colors.RED}[OFFLINE]{Colors.ENDC}"
         print(f"[*] Local Web Dashboard: {srv_status}\n")
