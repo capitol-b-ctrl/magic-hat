@@ -14,38 +14,38 @@ def get_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+# Database path stored locally in project directory
+DB_PATH = os.path.expanduser("~/Magic_Hat/magic_hat.db")
+
 def init_db():
-    """Initialize database tables and ensure required columns exist."""
-    with get_connection() as conn:
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS scan_logs (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                tool_name TEXT NOT NULL,
-                target TEXT NOT NULL,
-                metadata_json TEXT,
-                output TEXT,
-                timestamp TEXT NOT NULL
-            )
-        """)
-        # Safely add metadata_json column if an older database file exists
-        cursor = conn.execute("PRAGMA table_info(scan_logs)")
-        columns = [col["name"] for col in cursor.fetchall()]
-        if "metadata_json" not in columns:
-            conn.execute("ALTER TABLE scan_logs ADD COLUMN metadata_json TEXT")
-        conn.commit()
-
-def log_scan(tool_name, target, output, metadata=None):
-    """Log scan results with raw output and structured metadata."""
-    init_db()
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    meta_str = json.dumps(metadata) if metadata else "{}"
-    with get_connection() as conn:
-        conn.execute(
-            "INSERT INTO scan_logs (tool_name, target, metadata_json, output, timestamp) VALUES (?, ?, ?, ?, ?)",
-            (tool_name, target, meta_str, output, timestamp)
+    """Initialize the SQLite database and required tables if they don't exist."""
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS scan_logs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+            scan_type TEXT,
+            target TEXT,
+            output TEXT
         )
-        conn.commit()
+    ''')
+    conn.commit()
+    conn.close()
 
+def log_scan_result(scan_type, target, output):
+    """Logs scan results or remote telemetry into the SQLite database."""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        INSERT INTO scan_logs (scan_type, target, output)
+        VALUES (?, ?, ?)
+    ''', (scan_type, target, output))
+    conn.commit()
+    conn.close()
+    
+    
 def get_scan_logs():
     """Retrieve all logged scans."""
     init_db()

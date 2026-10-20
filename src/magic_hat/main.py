@@ -1,81 +1,98 @@
-"""Main lifecycle runner and menu controller for Magic Hat."""
+#!/usr/bin/env python3
+"""Main controller and interactive menu loop for Magic Hat framework."""
 
 import sys
-import argparse
+import os
 from magic_hat.utils import (
-    BANNER_IMAGE, clear_screen, get_all_device_ips, 
-    get_subnet_range, check_dependencies, load_config, 
-    print_tactical_header, Colors
+    clear_screen, 
+    print_tactical_header, 
+    Colors, 
+    load_config
 )
-import magic_hat.utils as utils
-from magic_hat.tools import (
-    display_offensive_suite,
-    handle_wireless_bt_scanner,
-    handle_subnet_sweep_tool,
-    handle_view_logs,
-    handle_global_target_manager,
-    handle_binary_diagnostics,
-    handle_webhook_config,
-    handle_quick_shell
-)
-from magic_hat.pipeline import run_autopilot_pipeline
-from magic_hat.server import toggle_web_server, is_server_running
-from magic_hat.reports import handle_report_menu
 
-def main():
-    """Main framework lifecycle loop."""
-    check_dependencies()
-    
+from magic_hat.database import log_scan, get_scan_logs, get_connection
+
+from magic_hat.remote_agent import run_remote_telemetry_agent
+
+def main_menu():
+    """Renders the primary framework interface and dispatches operational phases."""
     while True:
         clear_screen()
-        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         print_tactical_header()
         
-        print(f"{Colors.YELLOW}{Colors.HEADER}=== MAIN MENU ==={Colors.ENDC}".center(68))
-        print("-" * 60)
-        print(f"{Colors.BOLD}1.{Colors.ENDC} Phase 1: Scope & Airspace Recon (Wi-Fi/BT)")
-        print(f"{Colors.BOLD}2.{Colors.ENDC} Phase 2: Active Network Discovery & Sweeping")
-        print(f"{Colors.BOLD}3.{Colors.ENDC} Phase 3: Vulnerability & Service Audit Suite")
-        print(f"{Colors.BOLD}4.{Colors.ENDC} Phase 4: Auto-Pilot Assessment Pipeline")
-        print(f"{Colors.BOLD}5.{Colors.ENDC} Phase 5: Telemetry Server & Web Dashboard Toggle")
-        print(f"{Colors.BOLD}6.{Colors.ENDC} Phase 6: Global Target Scope Manager")
-        print(f"{Colors.BOLD}7.{Colors.ENDC} Phase 7: Tactical Binary Health & Diagnostics")
-        print(f"{Colors.BOLD}8.{Colors.ENDC} Phase 8: Webhook & Notification Hub")
-        print(f"{Colors.BOLD}9.{Colors.ENDC} Phase 9: Operator Quick-Shell Launcher")
-        print(f"{Colors.BOLD}10.{Colors.ENDC} Phase 10: Scan Archives & Telemetry Logs")
-        print(f"{Colors.BOLD}11.{Colors.ENDC} Phase 11: Engagement Reports & Database Management")
-        print(f"{Colors.RED}12. Exit Framework{Colors.ENDC}")
+        print(f"{Colors.CYAN}[ OPERATIONAL PHASES & MODULES ]{Colors.ENDC}")
+        print("  [1] Phase 1: Reconnaissance & Target Discovery")
+        print("  [2] Phase 2: Network Mapping & Port Enumeration")
+        print("  [3] Phase 3: Vulnerability & Service Audit Suite")
+        print("  [4] Phase 4: Wireless & Airspace Intelligence")
+        print("  [5] Phase 5: Flask Web Dashboard Control")
+        print("  [6] Phase 6: Global Target Scope Manager")
+        print("  [7] Phase 7: Binary Health Diagnostics")
+        print("  [8] Phase 8: Webhook / Notification Hub")
+        print("  [9] Phase 9: Operator Quick-Shell Launcher")
+        print(" [10] Phase 10: Scan Archives & Telemetry Logs")
+        print(" [11] Phase 11: Tactical Report Generation")
+        print(" [12] Phase 12: Automated Remote Telemetry Agent")
+        print(" [13] Exit Framework")
         print("-" * 60)
         
-        choice = input(f"{Colors.YELLOW}Select lifecycle phase [1-12, or 99/b]: {Colors.ENDC}").strip().lower()
+        choice = input(f"{Colors.YELLOW}Select operational phase [1-13]: {Colors.ENDC}").strip()
         
-        if choice in ["12", "99", "b", "exit", "quit"]:
-            print(f"\n{Colors.GREEN}[*] Shutting down Magic Hat. Stay secure.{Colors.ENDC}")
+        if choice == '1':
+            print(f"\n{Colors.GREEN}[*] Launching Reconnaissance Module...{Colors.ENDC}")
+            # Insert Phase 1 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '2':
+            print(f"\n{Colors.GREEN}[*] Launching Network Mapping Module...{Colors.ENDC}")
+            # Insert Phase 2 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '3':
+            print(f"\n{Colors.GREEN}[*] Launching Vulnerability & Service Audit Suite...{Colors.ENDC}")
+            # Insert Phase 3 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '4':
+            print(f"\n{Colors.GREEN}[*] Launching Wireless & Airspace Intelligence...{Colors.ENDC}")
+            # Insert Phase 4 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '5':
+            print(f"\n{Colors.GREEN}[*] Toggling Flask Web Dashboard...{Colors.ENDC}")
+            # Insert Phase 5 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '6':
+            print(f"\n{Colors.GREEN}[*] Opening Global Target Scope Manager...{Colors.ENDC}")
+            # Insert Phase 6 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '7':
+            print(f"\n{Colors.GREEN}[*] Running Binary Health Diagnostics...{Colors.ENDC}")
+            # Insert Phase 7 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '8':
+            print(f"\n{Colors.GREEN}[*] Opening Webhook & Notification Hub...{Colors.ENDC}")
+            # Insert Phase 8 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '9':
+            print(f"\n{Colors.GREEN}[*] Spawning Operator Quick-Shell...{Colors.ENDC}")
+            os.system("bash")
+        elif choice == '10':
+            print(f"\n{Colors.GREEN}[*] Opening Scan Archives & Telemetry Logs...{Colors.ENDC}")
+            # Insert Phase 10 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '11':
+            print(f"\n{Colors.GREEN}[*] Generating Tactical Reports...{Colors.ENDC}")
+            # Insert Phase 11 handler here
+            input("\nPress Enter to continue...")
+        elif choice == '12':
+            run_remote_telemetry_agent()
+        elif choice == '13':
+            print(f"\n{Colors.CYAN}[*] Shutting down Magic Hat. Stay safe, operator.{Colors.ENDC}")
             sys.exit(0)
-        elif choice == "1":
-            handle_wireless_bt_scanner()
-        elif choice == "2":
-            handle_subnet_sweep_tool()
-        elif choice == "3":
-            display_offensive_suite()
-        elif choice == "4":
-            run_autopilot_pipeline()
-        elif choice == "5":
-            toggle_web_server()
-        elif choice == "6":
-            handle_global_target_manager()
-        elif choice == "7":
-            handle_binary_diagnostics()
-        elif choice == "8":
-            handle_webhook_config()
-        elif choice == "9":
-            handle_quick_shell()
-        elif choice == "10":
-            handle_view_logs()
-        elif choice == "11":
-            handle_report_menu()
         else:
-            input(f"{Colors.RED}Invalid lifecycle selection! Press Enter to retry...{Colors.ENDC}")
+            print(f"\n{Colors.RED}[-] Invalid selection. Choose between 1 and 13.{Colors.ENDC}")
+            input("Press Enter to continue...")
 
 if __name__ == "__main__":
-    main()
+    try:
+        main_menu()
+    except KeyboardInterrupt:
+        print(f"\n\n{Colors.CYAN}[*] Interrupted by operator. Exiting...{Colors.ENDC}")
+        sys.exit(0)
