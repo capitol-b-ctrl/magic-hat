@@ -28,8 +28,8 @@ def export_engagement_report():
         input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
         return
         
-    report_filename = os.path.expanduser("~/magic_hat_engagement_report.md")
-    json_filename = os.path.expanduser("~/magic_hat_telemetry_export.json")
+    report_filename = os.path.expanduser("~/Magic_Hat/src/magic_hat/reports/magic_hat_engagement_report.md")
+    json_filename = os.path.expanduser("~/Magic_Hat/src/magic_hat/reports/magic_hat_telemetry_export.json")
     
     full_data = []
     with get_connection() as conn:
