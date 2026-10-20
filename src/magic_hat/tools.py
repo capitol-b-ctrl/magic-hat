@@ -6,9 +6,12 @@ import subprocess
 import re
 import base64
 from magic_hat.database import log_scan, get_scan_logs, get_connection
-from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, print_tactical_header, get_subnet_range, send_notification, Colors
+from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, print_tactical_header, get_subnet_range, send_notification, Colors, ACTIVE_SCOPE, WEBHOOK_CONFIG
+
 import qrcode  # Requires: pip install qrcode
 import socket
+
+
 
 def display_offensive_suite():
     while True:
@@ -16,7 +19,7 @@ def display_offensive_suite():
         print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         print(f"{Colors.YELLOW}{Colors.HEADER}=== OFFENSIVE & TACTICAL DEPLOYMENT SUITE ==={Colors.ENDC}".center(60))
         print("=" * 60)
-        print(f"{Colors.YELLOW}--- RECON & PROFILING ---{Colors.ENDC} ".center(60, " "))
+        print(f"{Colors.YELLOW}--- RECON & PROFILING ---{Colors.ENDC}".center(60, " "))
         print("-" * 60)
         print(f"{Colors.BOLD}1.{Colors.ENDC} Recon & Target Profiler")
         print(f"{Colors.BOLD}2.{Colors.ENDC} Net Shark Packet Capture (tshark)")
@@ -140,20 +143,58 @@ def print_target_context(tool_title):
     print(tool_title.center(60))
     print("-" * 60)
 
+def select_target_interactive():
+    """Display recent discovered targets from the database and let the user pick one."""
+    logs = get_scan_logs()
+    if not logs:
+        return None
+        
+    discovered_hosts = set()
+    for log in logs:
+        target = log['target']
+        if target and target not in ["Local Airspace", "Airspace"]:
+            discovered_hosts.add(target)
+            
+        if "Nmap" in log['tool_name'] or "Sweep" in log['tool_name'] or "Pipeline" in log['tool_name']:
+            output = log.get('output', '')
+            ips = re.findall(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b", output)
+            for ip in ips:
+                if not ip.startswith("8.8.") and ip != "255.255.255.255":
+                    discovered_hosts.add(ip)
+
+    hosts_list = sorted(list(discovered_hosts))
+    if not hosts_list:
+        return None
+
+    clear_screen()
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+    print_tactical_header()
+    print("=== INTELLIGENCE TARGET SELECTOR ===".center(60))
+    print("-" * 60)
+    print("Discovered targets from pipeline & recent telemetry:")
+    for idx, host in enumerate(hosts_list, 1):
+        print(f"  {Colors.BOLD}{idx}.{Colors.ENDC} {host}")
+    print(f"  {Colors.RED}0.{Colors.ENDC} Enter manually")
+    print("-" * 60)
+    
+    choice = input(f"{Colors.YELLOW}Select target index [1-{len(hosts_list)}] or 0 for manual: {Colors.ENDC}").strip()
+    if choice.isdigit():
+        c_idx = int(choice)
+        if 1 <= c_idx <= len(hosts_list):
+            selected = hosts_list[c_idx - 1]
+            print(f"{Colors.GREEN}[*] Auto-selected Target from Database: {selected}{Colors.ENDC}")
+            return selected
+    return None
 
 def handle_nmap_menu():
     """Interactive Nmap scan selection and execution menu with deep target profiling."""
     while True:
-        clear_screen()
-        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-        print_tactical_header()
-        print("=== PAGE: NMAP DEEP RECON & TARGET PROFILER ===".center(60))
-        print("-" * 60)
-        print("1. Quick Port Scan (-T4)")
-        print("2. Service & Version Detection (-sV -T4)")
-        print("3. Comprehensive Target Profile (OS, Scripts, Versions: -A -sC -T4)")
-        print("4. Full Port Sweep (-p- -T4)")
-        print("5. Custom Flags")
+        print_target_context("=== PAGE: NMAP DEEP RECON & TARGET PROFILER ===")
+        print(f"{Colors.BOLD}1.{Colors.ENDC} Quick Port Scan (-T4)")
+        print(f"{Colors.BOLD}2.{Colors.ENDC} Service & Version Detection (-sV -T4)")
+        print(f"{Colors.BOLD}3.{Colors.ENDC} Comprehensive Target Profile (OS, Scripts, Versions: -A -sC -T4)")
+        print(f"{Colors.BOLD}4.{Colors.ENDC} Full Port Sweep (-p- -T4)")
+        print(f"{Colors.BOLD}5.{Colors.ENDC} Custom Flags")
         print(f"{Colors.RED}99. Back to Suite Menu (b){Colors.ENDC}")
         print("-" * 60)
         
@@ -161,9 +202,17 @@ def handle_nmap_menu():
         if choice in ["99", "b", "back"]:
             break
             
-        target = input(f"{Colors.YELLOW}Enter target IP, hostname, or CIDR (or 'b' to back): {Colors.ENDC}").strip()
-        if target.lower() in ["b", "99", "back", ""]:
-            continue
+        use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+        target = None
+        if use_intel in ['y', 'yes']:
+            target = select_target_interactive()
+            
+        if not target:
+            target = input(f"{Colors.YELLOW}Enter target IP, hostname, or CIDR (or 'b' to back): {Colors.ENDC}").strip()
+            if target.lower() in ["b", "99", "back", ""]:
+                continue
+            
+        print(f"{Colors.GREEN}[*] Target Locked: {target}{Colors.ENDC}")
             
         flags = ["-T4"]
         if choice == "1":
@@ -222,11 +271,7 @@ def handle_nmap_menu():
 
 def handle_net_shark():
     """Tool 2: Net Shark (Packet Capture / tshark)."""
-    clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-    print_tactical_header()
-    print("=== PAGE: NET SHARK (PACKET CAPTURE) ===".center(60))
-    print("-" * 60)
+    print_target_context("=== PAGE: NET SHARK (PACKET CAPTURE) ===")
     
     ips = get_all_device_ips()
     print(f"{Colors.YELLOW}[*] Available Interfaces:{Colors.ENDC}")
@@ -238,6 +283,7 @@ def handle_net_shark():
     if iface.lower() in ["b", "99", "back", ""]:
         return
         
+    print(f"{Colors.GREEN}[*] Interface Locked: {iface}{Colors.ENDC}")
     count = input(f"{Colors.YELLOW}Enter packet count limit (default 20): {Colors.ENDC}").strip() or "20"
     
     print(f"{Colors.GREEN}\n[+] Initializing Net Shark on {iface} (capturing {count} packets)...{Colors.ENDC}")
@@ -265,20 +311,27 @@ def handle_net_shark():
 
 def handle_web_fuzzer():
     """Tool 3: Web Directory Fuzzer (ffuf wrapper)."""
-    clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-    print_tactical_header()
-    print("=== PAGE: WEB DIR FUZZER (FFUF) ===".center(60))
-    print("-" * 60)
+    print_target_context("=== PAGE: WEB DIR FUZZER (FFUF) ===")
     
-    url = input(f"{Colors.YELLOW}Enter target URL (e.g., http://10.0.0.1/FUZZ) or 'b' to back: {Colors.ENDC}").strip()
-    if url.lower() in ["b", "99", "back", ""]:
-        return
+    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+    url = None
+    if use_intel in ['y', 'yes']:
+        url = select_target_interactive()
         
-    if "FUZZ" not in url:
-        print(f"{Colors.YELLOW}[!] Note: 'FUZZ' keyword missing in URL. Appending '/FUZZ'.{Colors.ENDC}")
+    if not url:
+        url = input(f"{Colors.YELLOW}Enter target URL or IP (e.g., http://192.168.8.1/FUZZ) or 'b' to back: {Colors.ENDC}").strip()
+        if url.lower() in ["b", "99", "back", ""]:
+            return
+        
+    if not url.startswith("http://") and not url.startswith("https://"):
+        url = f"http://{url}/FUZZ"
+    elif "FUZZ" not in url:
         url = url.rstrip("/") + "/FUZZ"
         
+    if "FUZZ" not in url:
+        url = url + "/FUZZ"
+        
+    print(f"{Colors.GREEN}[*] Target URL Locked: {url}{Colors.ENDC}")
     wordlist = input(f"{Colors.YELLOW}Enter wordlist path: {Colors.ENDC}").strip()
     if not wordlist:
         wordlist = "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt"
@@ -305,20 +358,17 @@ def handle_web_fuzzer():
 
 def handle_dns_recon():
     """Tool 4: DNS Recon (dig wrapper)."""
-    clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-    print_tactical_header()
-    print("=== PAGE: DNS FOOTPRINTING (DIG) ===".center(60))
-    print("-" * 60)
+    print_target_context("=== PAGE: DNS FOOTPRINTING (DIG) ===")
     
     domain = input(f"{Colors.YELLOW}Enter target domain or hostname (or 'b' to back): {Colors.ENDC}").strip()
     if domain.lower() in ["b", "99", "back", ""]:
         return
         
+    print(f"{Colors.GREEN}[*] Domain Locked: {domain}{Colors.ENDC}")
     print("Select Record Query Type:")
-    print("1. Standard Query (A, MX, NS)")
-    print("2. All Records (ANY)")
-    print("3. Zone Transfer Attempt (AXFR)")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} Standard Query (A, MX, NS)")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} All Records (ANY)")
+    print(f"{Colors.BOLD}3.{Colors.ENDC} Zone Transfer Attempt (AXFR)")
     
     choice = input(f"{Colors.YELLOW}Select query type [1-3]: {Colors.ENDC}").strip()
     qtype = ""
@@ -352,16 +402,19 @@ def handle_dns_recon():
 
 def handle_tech_fingerprint():
     """Tool 5: Web Tech Fingerprinting (whatweb wrapper)."""
-    clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-    print_tactical_header()
-    print("=== PAGE: WEB TECH FINGERPRINT (WHATWEB) ===".center(60))
-    print("-" * 60)
+    print_target_context("=== PAGE: WEB TECH FINGERPRINT (WHATWEB) ===")
     
-    target = input(f"{Colors.YELLOW}Enter target URL or IP (or 'b' to back): {Colors.ENDC}").strip()
-    if target.lower() in ["b", "99", "back", ""]:
-        return
+    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+    target = None
+    if use_intel in ['y', 'yes']:
+        target = select_target_interactive()
         
+    if not target:
+        target = input(f"{Colors.YELLOW}Enter target URL or IP (or 'b' to back): {Colors.ENDC}").strip()
+        if target.lower() in ["b", "99", "back", ""]:
+            return
+            
+    print(f"{Colors.GREEN}[*] Target Locked: {target}{Colors.ENDC}")
     print(f"{Colors.GREEN}\n[+] Fingerprinting technology stack for {target}...{Colors.ENDC}")
     try:
         cmd = ["whatweb", target]
@@ -384,11 +437,7 @@ def handle_tech_fingerprint():
 
 def handle_subnet_sweep():
     """Tool 6: Local Subnet Discovery & ARP Sweeping."""
-    clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-    print_tactical_header()
-    print("=== PAGE: SUBNET & ARP DISCOVERY ===".center(60))
-    print("-" * 60)
+    print_target_context("=== PAGE: SUBNET & ARP DISCOVERY ===")
     
     ips = get_all_device_ips()
     default_sub = "192.168.1.0/24"
@@ -400,7 +449,8 @@ def handle_subnet_sweep():
     if subnet.lower() in ["b", "99", "back"]:
         return
     target_sub = subnet if subnet else default_sub
-        
+    
+    print(f"{Colors.GREEN}[*] Subnet Locked: {target_sub}{Colors.ENDC}")
     print(f"{Colors.GREEN}\n[+] Sweeping subnet {target_sub} for live hosts...{Colors.ENDC}")
     try:
         cmd = ["nmap", "-sn", target_sub]
@@ -414,8 +464,8 @@ def handle_subnet_sweep():
         print(output)
         
         log_scan("Subnet Sweep", target_sub, output)
-        send_webhook_notification("Subnet Sweep Complete", f"Discovered live hosts on {target_sub}")
-        print(f"{Colors.GREEN}\n[✔] Sweep results logged and webhook triggered.{Colors.ENDC}")
+        send_notification(f"Subnet Sweep Complete: Discovered live hosts on {target_sub}")
+        print(f"{Colors.GREEN}\n[✔] Sweep results logged and notification triggered.{Colors.ENDC}")
     except Exception as e:
         print(f"{Colors.RED}\n[-] Sweep failed: {e}{Colors.ENDC}")
         
@@ -428,8 +478,8 @@ def handle_wireless_recon():
     print_tactical_header()
     print("=== PAGE: WIRELESS & RF FOOTPRINTING ===".center(60))
     print("-" * 60)
-    print("1. List Wireless Interfaces & Status (iw / nmcli)")
-    print("2. Scan Nearby Wi-Fi Networks")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} List Wireless Interfaces & Status (iw / nmcli)")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} Scan Nearby Wi-Fi Networks")
     print(f"{Colors.RED}99. Back to Suite Menu (b){Colors.ENDC}")
     print("-" * 60)
     
@@ -473,6 +523,7 @@ def handle_hash_identifier():
     if hash_str.lower() in ["b", "99", "back", ""]:
         return
         
+    print(f"{Colors.GREEN}[*] Target Hash Locked: {hash_str}{Colors.ENDC}")
     length = len(hash_str)
     identified = []
     
@@ -518,16 +569,13 @@ def handle_hash_identifier():
 
 def handle_exploit_search():
     """Tool 9: Exploit Search Engine (searchsploit wrapper)."""
-    clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-    print_tactical_header()
-    print("=== PAGE: EXPLOIT SEARCH ENGINE ===".center(60))
-    print("-" * 60)
+    print_target_context("=== PAGE: EXPLOIT SEARCH ENGINE ===")
     
     query = input(f"{Colors.YELLOW}Enter service or software version (e.g., 'apache 2.4') or 'b' to back: {Colors.ENDC}").strip()
     if query.lower() in ["b", "99", "back", ""]:
         return
         
+    print(f"{Colors.GREEN}[*] Query Locked: {query}{Colors.ENDC}")
     print(f"{Colors.GREEN}\n[+] Querying local exploit database for '{query}'...{Colors.ENDC}")
     try:
         cmd = ["searchsploit", query]
@@ -550,15 +598,19 @@ def handle_exploit_search():
 
 def handle_hydra_audit():
     """Tool 10: Credential & Service Auditor (hydra wrapper)."""
-    clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-    print_tactical_header()
-    print("=== PAGE: CREDENTIAL AUDITOR (HYDRA) ===".center(60))
-    print("-" * 60)
+    print_target_context("=== PAGE: CREDENTIAL AUDITOR (HYDRA) ===")
     
-    target = input(f"{Colors.YELLOW}Enter target IP/hostname (or 'b' to back): {Colors.ENDC}").strip()
-    if target.lower() in ["b", "99", "back", ""]:
-        return
+    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+    target = None
+    if use_intel in ['y', 'yes']:
+        target = select_target_interactive()
+        
+    if not target:
+        target = input(f"{Colors.YELLOW}Enter target IP/hostname (or 'b' to back): {Colors.ENDC}").strip()
+        if target.lower() in ["b", "99", "back", ""]:
+            return
+            
+    print(f"{Colors.GREEN}[*] Target Locked: {target}{Colors.ENDC}")
     service = input(f"{Colors.YELLOW}Enter service protocol (ssh, ftp, http-post-form): {Colors.ENDC}").strip()
     user = input(f"{Colors.YELLOW}Enter username or user file path: {Colors.ENDC}").strip()
     wordlist = input(f"{Colors.YELLOW}Enter password wordlist path: {Colors.ENDC}").strip()
@@ -719,23 +771,26 @@ def handle_view_logs():
 
 def handle_ssh_audit():
     """Tool: SSH Remote Execution & Banner/Key Auditor."""
-    clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
-    print_tactical_header()
-    print("=== PAGE: SSH AUDITOR & REMOTE ACCESS ===".center(60))
-    print("-" * 60)
+    print_target_context("=== PAGE: SSH AUDITOR & REMOTE ACCESS ===")
     
-    target = input(f"{Colors.YELLOW}Enter target IP/hostname (or 'b' to back): {Colors.ENDC}").strip()
-    if target.lower() in ["b", "99", "back", ""]:
-        return
+    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+    target = None
+    if use_intel in ['y', 'yes']:
+        target = select_target_interactive()
         
+    if not target:
+        target = input(f"{Colors.YELLOW}Enter target IP/hostname (or 'b' to back): {Colors.ENDC}").strip()
+        if target.lower() in ["b", "99", "back", ""]:
+            return
+            
+    print(f"{Colors.GREEN}[*] Target Locked: {target}{Colors.ENDC}")
     port = input(f"{Colors.YELLOW}Enter SSH port [default 22]: {Colors.ENDC}").strip() or "22"
     user = input(f"{Colors.YELLOW}Enter SSH username [default root]: {Colors.ENDC}").strip() or "root"
     
     print("\nSelect Action:")
-    print("1. Audit Banner & Key Exchange Algorithms (ssh-keyscan)")
-    print("2. Test Remote SSH Interactive Connection")
-    print("3. Execute Single Remote Command")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} Audit Banner & Key Exchange Algorithms (ssh-keyscan)")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} Test Remote SSH Interactive Connection")
+    print(f"{Colors.BOLD}3.{Colors.ENDC} Execute Single Remote Command")
     
     choice = input(f"{Colors.YELLOW}Select action [1-3]: {Colors.ENDC}").strip()
     
@@ -793,8 +848,8 @@ def handle_powershell_audit():
         return
 
     print("Select Mode:")
-    print("1. Run Local PowerShell Command / One-Liner (pwsh -c)")
-    print("2. WinRM Remote Query (WS-Man / Windows Hosts)")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} Run Local PowerShell Command / One-Liner (pwsh -c)")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} WinRM Remote Query (WS-Man / Windows Hosts)")
     print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
@@ -826,8 +881,8 @@ def handle_wireless_recon():
     print_tactical_header()
     print("=== PAGE: WIRELESS & RF FOOTPRINTING ===".center(60))
     print("-" * 60)
-    print("1. List Wireless Interfaces & Status (iw / nmcli / ip link)")
-    print("2. Scan Nearby Wi-Fi Networks")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} List Wireless Interfaces & Status (iw / nmcli / ip link)")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} Scan Nearby Wi-Fi Networks")
     print(f"{Colors.RED}99. Back to Suite Menu (b){Colors.ENDC}")
     print("-" * 60)
     
@@ -879,9 +934,9 @@ def handle_monitor_mode():
     print_tactical_header()
     print("=== WIRELESS MONITOR MODE MANAGER ===".center(60))
     print("-" * 60)
-    print("1. Check Wireless Interfaces (airmon-ng / iwconfig)")
-    print("2. Enable Monitor Mode on Interface (e.g., wlan0)")
-    print("3. Disable Monitor Mode")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} Check Wireless Interfaces (airmon-ng / iwconfig)")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} Enable Monitor Mode on Interface (e.g., wlan0)")
+    print(f"{Colors.BOLD}3.{Colors.ENDC} Disable Monitor Mode")
     print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
@@ -952,8 +1007,8 @@ def handle_bluetooth_recon():
     print_tactical_header()
     print("=== BLUETOOTH & BLE AIRSPACE RECON ===".center(60))
     print("-" * 60)
-    print("1. Scan Classic Bluetooth Devices (hcitool scan)")
-    print("2. Scan BLE Devices (bluetoothctl scan le)")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} Scan Classic Bluetooth Devices (hcitool scan)")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} Scan BLE Devices (bluetoothctl scan le)")
     print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
@@ -996,9 +1051,9 @@ def handle_payload_generator():
     print_tactical_header()
     print("=== PAGE: TACTICAL REVERSE SHELL ===".center(60))
     print("-" * 60)
-    print("1. Python3 Socket Reverse Shell")
-    print("2. Bash TCP Reverse Shell One-Liner")
-    print("3. Netcat Traditional / OpenBSD Listener Command")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} Python3 Socket Reverse Shell")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} Bash TCP Reverse Shell One-Liner")
+    print(f"{Colors.BOLD}3.{Colors.ENDC} Netcat Traditional / OpenBSD Listener Command")
     print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
@@ -1065,8 +1120,8 @@ def handle_bluetooth_attacks():
     print_tactical_header()
     print("=== PAGE: BLUETOOTH ATTACK SUITE ===".center(60))
     print("-" * 60)
-    print("1. Scan & Enumerate Device SDP Services (sdptool)")
-    print("2. L2CAP Ping Flood / Stress Test (l2ping)")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} Scan & Enumerate Device SDP Services (sdptool)")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} L2CAP Ping Flood / Stress Test (l2ping)")
     print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
@@ -1114,8 +1169,8 @@ def handle_crypto_engine():
     print_tactical_header()
     print("=== PAGE: CRYPTO & OBFUSCATION ENGINE ===".center(60))
     print("-" * 60)
-    print("1. Base64 Encode / Decode")
-    print("2. Simple XOR Transformation")
+    print(f"{Colors.BOLD}1.{Colors.ENDC} Base64 Encode / Decode")
+    print(f"{Colors.BOLD}2.{Colors.ENDC} Simple XOR Transformation")
     print(f"{Colors.RED}99. Back (b){Colors.ENDC}")
     print("-" * 60)
     
@@ -1150,3 +1205,128 @@ def handle_crypto_engine():
         log_scan("Crypto Engine", "XOR Cipher", b64_out)
         
     input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
+    
+def handle_global_target_manager():
+    """Phase 6: Global Target Scope Manager."""
+    while True:
+        clear_screen()
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print_tactical_header()
+        print("=== GLOBAL TARGET SCOPE MANAGER ===".center(60))
+        print("-" * 60)
+        current = ACTIVE_SCOPE.get("target")
+        print(f"[*] Currently Locked Target: {Colors.CYAN}{current if current else 'None'}{Colors.ENDC}")
+        print("-" * 60)
+        print(f"{Colors.BOLD}1.{Colors.ENDC} Set Global Target Manually")
+        print(f"{Colors.BOLD}2.{Colors.ENDC} Select Target from Database Intelligence")
+        print(f"{Colors.BOLD}3.{Colors.ENDC} Clear / Reset Global Target Scope")
+        print(f"{Colors.RED}99. Back to Main Menu (b){Colors.ENDC}")
+        print("-" * 60)
+        
+        choice = input(f"{Colors.YELLOW}Select option [1-3, or 99/b]: {Colors.ENDC}").strip().lower()
+        if choice in ["99", "b", "back"]:
+            break
+        elif choice == "1":
+            new_t = input(f"{Colors.YELLOW}Enter target IP or hostname: {Colors.ENDC}").strip()
+            if new_t:
+                ACTIVE_SCOPE["target"] = new_t
+                print(f"{Colors.GREEN}[✔] Global target locked to: {new_t}{Colors.ENDC}")
+                input(f"{Colors.YELLOW}Press Enter to continue...{Colors.ENDC}")
+        elif choice == "2":
+            selected = select_target_interactive()
+            if selected:
+                ACTIVE_SCOPE["target"] = selected
+                print(f"{Colors.GREEN}[✔] Global target locked to: {selected}{Colors.ENDC}")
+                input(f"{Colors.YELLOW}Press Enter to continue...{Colors.ENDC}")
+        elif choice == "3":
+            ACTIVE_SCOPE["target"] = None
+            print(f"{Colors.YELLOW}[*] Global target scope cleared.{Colors.ENDC}")
+            input(f"{Colors.YELLOW}Press Enter to continue...{Colors.ENDC}")
+
+def handle_binary_diagnostics():
+    """Phase 7: Tactical Binary Health & Dependency Diagnostics."""
+    clear_screen()
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+    print_tactical_header()
+    print("=== BINARY HEALTH & DEPENDENCY DIAGNOSTICS ===".center(60))
+    print("-" * 60)
+    
+    binaries = [
+        "nmap", "tshark", "ffuf", "dig", "whatweb", 
+        "hydra", "hashcat", "searchsploit", "pwsh", 
+        "airmon-ng", "bluetoothctl", "sdptool", "l2ping"
+    ]
+    
+    print(f"{'BINARY / TOOL':<18} | {'STATUS':<12} | {'PATH / NOTES'}")
+    print("-" * 60)
+    for b in binaries:
+        path = shutil.which(b)
+        if path:
+            status = f"{Colors.GREEN}OPERATIONAL{Colors.ENDC}"
+            note = path
+        else:
+            status = f"{Colors.RED}MISSING [✘]{Colors.ENDC}"
+            note = "Run `pkg install ...`"
+        print(f"{b:<18} | {status:<20} | {note}")
+        
+    print("-" * 60)
+    input(f"{Colors.YELLOW}Press Enter to return to main menu...{Colors.ENDC}")
+
+def handle_webhook_config():
+    """Phase 8: Webhook & Notification Hub."""
+    while True:
+        clear_screen()
+        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+        print_tactical_header()
+        print("=== WEBHOOK & NOTIFICATION HUB ===".center(60))
+        print("-" * 60)
+        curr_url = WEBHOOK_CONFIG.get("url", "")
+        print(f"[*] Current Webhook URL: {Colors.CYAN}{curr_url if curr_url else 'Not Configured'}{Colors.ENDC}")
+        print("-" * 60)
+        print(f"{Colors.BOLD}1.{Colors.ENDC} Set / Update Webhook URL (Discord / Telegram)")
+        print(f"{Colors.BOLD}2.{Colors.ENDC} Send Test Notification")
+        print(f"{Colors.BOLD}3.{Colors.ENDC} Disable / Clear Webhook")
+        print(f"{Colors.RED}99. Back to Main Menu (b){Colors.ENDC}")
+        print("-" * 60)
+        
+        choice = input(f"{Colors.YELLOW}Select option [1-3, or 99/b]: {Colors.ENDC}").strip().lower()
+        if choice in ["99", "b", "back"]:
+            break
+        elif choice == "1":
+            u = input(f"{Colors.YELLOW}Enter Webhook URL: {Colors.ENDC}").strip()
+            if u:
+                WEBHOOK_CONFIG["url"] = u
+                print(f"{Colors.GREEN}[✔] Webhook URL configured successfully.{Colors.ENDC}")
+                input(f"{Colors.YELLOW}Press Enter...{Colors.ENDC}")
+        elif choice == "2":
+            print(f"{Colors.GREEN}[+] Dispatching test notification...{Colors.ENDC}")
+            send_notification("Test dispatch from Magic Hat Framework.")
+            print(f"{Colors.GREEN}[✔] Test alert sent.{Colors.ENDC}")
+            input(f"{Colors.YELLOW}Press Enter...{Colors.ENDC}")
+        elif choice == "3":
+            WEBHOOK_CONFIG["url"] = ""
+            print(f"{Colors.YELLOW}[*] Webhook notifications disabled.{Colors.ENDC}")
+            input(f"{Colors.YELLOW}Press Enter...{Colors.ENDC}")
+
+def handle_quick_shell():
+    """Phase 9: Operator Quick-Shell Launcher."""
+    clear_screen()
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+    print_tactical_header()
+    print("=== OPERATOR QUICK-SHELL ===".center(60))
+    print("Type any command to execute in the system shell.")
+    print("Type 'exit' or 'back' to return to the framework menu.")
+    print("-" * 60)
+    
+    while True:
+        cmd = input(f"{Colors.GREEN}magic-hat-shell# {Colors.ENDC}").strip()
+        if not cmd:
+            continue
+        if cmd.lower() in ["exit", "back", "99"]:
+            break
+            
+        try:
+            subprocess.run(cmd, shell=True)
+        except Exception as e:
+            print(f"{Colors.RED}[-] Execution error: {e}{Colors.ENDC}")
+        print()

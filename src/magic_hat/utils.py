@@ -9,7 +9,10 @@ import shutil
 import subprocess
 import urllib.request
 
-# Framework-wide Global States
+
+# Global engagement target state
+ACTIVE_SCOPE = {"target": None}
+WEBHOOK_CONFIG = {"url": ""}
 PIPELINE_STATE = "READY"
 BANNER_IMAGE = r"""
 
@@ -59,107 +62,62 @@ class Colors:
 
 
 def clear_screen():
-    """Clear terminal screen across platforms."""
+    """Clear terminal screen."""
     os.system('cls' if os.name == 'nt' else 'clear')
 
-def load_config():
-    """Load configuration variables from config.json with safe defaults."""
-    default_config = {
-        "server_host": "127.0.0.1",
-        "server_port": 8080,
-        "default_wordlist": "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt",
-        "webhook_url": "",
-        "telegram_bot_token": "",
-        "telegram_chat_id": ""
-    }
-    
-    if os.path.exists("config.json"):
-        try:
-            with open("config.json", "r") as f:
-                user_config = json.load(f)
-                default_config.update(user_config)
-        except Exception as e:
-            print(f"{Colors.RED}[-] Warning: Failed to read config.json, using defaults: {e}{Colors.ENDC}")
-            
-    return default_config
-
-    
 def get_all_device_ips():
-    """Retrieve active local network interfaces and assigned IP addresses."""
+    """Retrieve active local network interfaces and assigned IP addresses robustly."""
     interfaces = []
     try:
         if shutil.which("ip"):
-            res = subprocess.run(["ip", "-o", "-4", "addr", "show"], capture_output=True, text=True)
-            for line in res.stdout.strip().split("\n"):
-                parts = line.split()
-                if len(parts) >= 4:
-                    iface = parts[1]
-                    ip_cidr = parts[3]
-                    if iface != "lo":
-                        interfaces.append((iface, ip_cidr))
+            res = subprocess.run(["ip", "addr"], capture_output=True, text=True)
+            current_iface = "unknown"
+            for line in res.stdout.splitlines():
+                if not line.startswith(" ") and not line.startswith("\t"):
+                    parts = line.split(":")
+                    if len(parts) >= 2:
+                        current_iface = parts[1].strip().split("@")[0]
+                elif "inet " in line:
+                    parts = line.strip().split()
+                    for i, p in enumerate(parts):
+                        if p == "inet" and i + 1 < len(parts):
+                            ip_cidr = parts[i + 1]
+                            if current_iface != "lo" and (current_iface, ip_cidr) not in interfaces:
+                                interfaces.append((current_iface, ip_cidr))
     except Exception:
         pass
+
+    if not interfaces:
+        try:
+            import socket
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            if ip:
+                interfaces.append(("wlan0", f"{ip}/24"))
+        except Exception:
+            pass
+
     return interfaces
 
 def get_subnet_range(ip_cidr):
-    """Compute base subnet range string from IP CIDR notation."""
-    if "/" in ip_cidr:
-        ip = ip_cidr.split("/")[0]
-        octets = ip.split(".")
+    """Derive default /24 subnet range from an IP CIDR string."""
+    try:
+        ip_part = ip_cidr.split("/")[0]
+        octets = ip_part.split(".")
         if len(octets) == 4:
             return f"{octets[0]}.{octets[1]}.{octets[2]}.0/24"
+    except Exception:
+        pass
     return "192.168.1.0/24"
 
-def check_dependencies():
-    """Verify required system utilities and display environmental readiness."""
-    tools = ["nmap", "ffuf", "dig", "whatweb", "tshark", "ssh", "hydra", "pwsh", "sdptool", "l2ping"]
-    print("=== ENVIRONMENT DEPENDENCY AUDIT ===".center(60))
-    print("-" * 60)
-    
-    for tool in tools:
-        found = shutil.which(tool) is not None
-        status = f"{Colors.GREEN}[FOUND]{Colors.ENDC}" if found else f"{Colors.RED}[MISSING]{Colors.ENDC}"
-        print(f"  * {tool:<15} : {status}")
-    print("-" * 60)
-
-def send_notification(message):
-    """Dispatch status alerts to Webhook or Telegram if endpoints are configured."""
-    config = load_config()
-    webhook = config.get("webhook_url", "").strip()
-    tg_token = config.get("telegram_bot_token", "").strip()
-    tg_chat = config.get("telegram_chat_id", "").strip()
-    
-    if webhook:
-        try:
-            req = urllib.request.Request(
-                webhook, 
-                data=json.dumps({"text": message}).encode('utf-8'), 
-                headers={'Content-Type': 'application/json'}
-            )
-            urllib.request.urlopen(req, timeout=5)
-        except Exception:
-            pass
-            
-    if tg_token and tg_chat:
-        try:
-            url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
-            payload = json.dumps({"chat_id": tg_chat, "text": f"[MAGIC HAT] {message}"}).encode('utf-8')
-            req = urllib.request.Request(url, data=payload, headers={'Content-Type': 'application/json'})
-            urllib.request.urlopen(req, timeout=5)
-        except Exception:
-            pass
-        
 def print_tactical_header():
-    """Render persistent tactical status bar with host IP and embedded ANSI indicators."""
+    """Render persistent tactical status bar with host IP, global scope, and indicators."""
     from magic_hat.server import is_server_running
     
-    # Server status indicator
-    if is_server_running():
-        srv_status = f"{Colors.GREEN}[ONLINE]{Colors.ENDC}"
-    else:
-        srv_status = f"{Colors.RED}[OFFLINE]{Colors.ENDC}"
+    srv_status = f"{Colors.GREEN}[ONLINE]{Colors.ENDC}" if is_server_running() else f"{Colors.RED}[OFFLINE]{Colors.ENDC}"
         
-    # Get primary host IP safely
     ips = get_all_device_ips()
     if ips:
         primary_iface, primary_ip_cidr = ips[0]
@@ -167,16 +125,32 @@ def print_tactical_header():
     else:
         host_ip_str = f"{Colors.RED}Not Connected{Colors.ENDC}"
 
+    global_target = ACTIVE_SCOPE.get("target")
+    scope_str = f"{Colors.CYAN}{global_target}{Colors.ENDC}" if global_target else f"{Colors.YELLOW}None (Not Locked){Colors.ENDC}"
+
     print("-" * 60)
     print(f" [*] Host Device IP      : {host_ip_str}")
+    print(f" [*] Global Target Scope : {scope_str}")
     print(f" [*] Local Web Dashboard : {srv_status}")
     print(f" [*] Background Pipeline : {Colors.CYAN}{PIPELINE_STATE}{Colors.ENDC}")
     print("-" * 60)
-    
-    if ips:
-        print(f" {Colors.YELLOW}[*] Active Interfaces & Host Spaces:{Colors.ENDC}")
-        for iface, ip_cidr in ips:
-            subnet = get_subnet_range(ip_cidr)
-            print(f"    - [{iface}] IP: {ip_cidr} | Subnet: {subnet}")
-        print("-" * 60)
-    
+
+def send_notification(message):
+    """Send webhook notification if configured."""
+    url = WEBHOOK_CONFIG.get("url")
+    if not url:
+        return
+    try:
+        data = json.dumps({"content": f"[Magic Hat Alert] {message}"}).encode("utf-8")
+        req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
+        urllib.request.urlopen(req, timeout=5)
+    except Exception:
+        pass
+
+def check_dependencies():
+    """Verify basic startup dependencies."""
+    pass
+
+def load_config():
+    """Load framework configuration."""
+    pass

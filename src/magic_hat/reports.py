@@ -2,8 +2,17 @@
 
 import os
 import json
-from magic_hat.database import get_connection, get_scan_logs
-from magic_hat.utils import clear_screen, BANNER_IMAGE, print_tactical_header, Colors
+from magic_hat.database import (
+    get_scan_logs, 
+    get_connection, 
+    clear_scan_logs
+    )
+from magic_hat.utils import (
+    clear_screen, 
+    BANNER_IMAGE, 
+    print_tactical_header, 
+    Colors
+    )
 
 def export_engagement_report():
     """Export all SQLite scan logs into a structured Markdown and JSON report."""
@@ -52,6 +61,24 @@ def export_engagement_report():
     print(f"{Colors.GREEN}[✔] JSON Telemetry successfully exported to: {json_filename}{Colors.ENDC}")
     input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
+def confirm_and_clear_database():
+    """Prompt user for confirmation before purging all telemetry records."""
+    clear_screen()
+    print(f"{Colors.RED}{BANNER_IMAGE}{Colors.ENDC}")
+    print_tactical_header()
+    print("=== PURGE TELEMETRY DATABASE ===".center(60))
+    print("-" * 60)
+    print(f"{Colors.RED}[!] WARNING: This will permanently delete all scan logs and archives!{Colors.ENDC}")
+    
+    confirm = input(f"{Colors.YELLOW}Are you sure you want to clear the database? Type 'YES' to confirm: {Colors.ENDC}").strip()
+    if confirm == "YES":
+        clear_scan_logs()
+        print(f"{Colors.GREEN}\n[✔] Telemetry database successfully purged. All logs cleared.{Colors.ENDC}")
+    else:
+        print(f"{Colors.YELLOW}\n[-] Purge aborted. Database remains unchanged.{Colors.ENDC}")
+        
+    input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
+
 def handle_report_menu():
     """Report management interface."""
     while True:
@@ -60,14 +87,17 @@ def handle_report_menu():
         print_tactical_header()
         print("=== REPORT GENERATION & EXPORT MENU ===".center(60))
         print("-" * 60)
-        print("1. Export Full Engagement Report (Markdown & JSON)")
+        print(f"{Colors.BOLD}1.{Colors.ENDC} Export Full Engagement Report (Markdown & JSON)")
+        print(f"{Colors.BOLD}2.{Colors.ENDC} Purge & Clear All Scan Logs / Telemetry Database")
         print(f"{Colors.RED}99. Back to Main Menu (b){Colors.ENDC}".center(68, " "))
         print("-" * 60)
         
-        choice = input(f"{Colors.YELLOW}Select option [1, or 99/b]: {Colors.ENDC}").strip().lower()
+        choice = input(f"{Colors.YELLOW}Select option [1-2, or 99/b]: {Colors.ENDC}").strip().lower()
         if choice in ["99", "b", "back"]:
             break
         elif choice == "1":
             export_engagement_report()
+        elif choice == "2":
+            confirm_and_clear_database()
         else:
             input(f"{Colors.RED}Invalid selection! Press Enter...{Colors.ENDC}")

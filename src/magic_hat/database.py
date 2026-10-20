@@ -53,3 +53,11 @@ def get_scan_logs():
         cursor = conn.cursor()
         cursor.execute("SELECT id, tool_name, target, timestamp FROM scan_logs ORDER BY id DESC")
         return [dict(row) for row in cursor.fetchall()]
+
+def clear_scan_logs():
+    """Purge all scan logs and telemetry records from the database."""
+    init_db()
+    with get_connection() as conn:
+        conn.execute("DELETE FROM scan_logs")
+        conn.execute("DELETE FROM sqlite_sequence WHERE name='scan_logs'")
+        conn.commit()
