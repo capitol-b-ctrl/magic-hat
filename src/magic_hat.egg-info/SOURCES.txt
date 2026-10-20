@@ -5,6 +5,7 @@ src/magic_hat/__init__.py
 src/magic_hat/database.py
 src/magic_hat/main.py
 src/magic_hat/pipeline.py
+src/magic_hat/remote_agent.py
 src/magic_hat/reports.py
 src/magic_hat/server.py
 src/magic_hat/tools.py
