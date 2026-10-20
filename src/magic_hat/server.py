@@ -1,12 +1,13 @@
-"""Flask background web dashboard and REST API for Magic Hat telemetry."""
 
-import time
-import json
-import threading
+"""Flask web server and Command Center dashboard for Magic Hat."""
+
+import os
+import socket
 import subprocess
-from flask import Flask, render_template_string, jsonify, request
+import json
+from flask import Flask, render_template_string, request, jsonify
 from magic_hat.database import get_scan_logs, get_connection
-from magic_hat.utils import load_config, Colors
+from magic_hat.utils import Colors, BANNER_IMAGE, clear_screen, print_tactical_header, load_config
 
 app = Flask(__name__)
 server_thread = None
@@ -269,60 +270,69 @@ DASHBOARD_HTML = """
 </html>
 """
 
-
-@app.route('/api/stream')
-def api_stream():
-    """Stream live telemetry events to the web dashboard in real-time."""
-    def event_stream():
-        last_id = 0
-        while True:
-            logs = get_scan_logs()
-            if logs and logs[0]['id'] > last_id:
-                latest = logs[0]
-                last_id = latest['id']
-                yield f"data: {json.dumps(latest)}\n\n"
-            time.sleep(2)
-    return app.response_class(event_stream(), mimetype='text/event-stream')
-
-@app.route('/')
+@app.route("/")
 def index():
     logs = get_scan_logs()
-    targets = set(l['target'] for l in logs)
-    return render_template_string(DASHBOARD_HTML, logs=logs, unique_targets=len(targets))
+    unique_targets = len(set(log['target'] for log in logs if log['target']))
+    return render_template_string(DASHBOARD_TEMPLATE, logs=logs, total_logs=len(logs), unique_targets=unique_targets)
 
-@app.route('/api/logs/<int:log_id>')
-def api_get_log(log_id):
+@app.route("/log/<int:log_id>")
+def log_detail(log_id):
     with get_connection() as conn:
-        row = conn.execute("SELECT tool_name, target, timestamp, output, metadata_json FROM scan_logs WHERE id = ?", (log_id,)).fetchone()
-        if row:
-            return jsonify(dict(row))
-        return jsonify({"error": "Log ID not found"}), 404
-
-def run_server():
-    config = load_config()
-    host = config.get("server_host", "127.0.0.1")
-    port = config.get("server_port", 8080)
-    app.run(host=host, port=port, debug=False, use_reloader=False)
-
-def toggle_web_server():
-    global server_thread, running
-    import magic_hat.utils as utils
-    config = load_config()
-    host = config.get("server_host", "127.0.0.1")
-    port = config.get("server_port", 8080)
-
-    if running:
-        print(f"\n{Colors.YELLOW}[*] Web dashboard is already running in the background.{Colors.ENDC}")
-    else:
-        server_thread = threading.Thread(target=run_server, daemon=True)
-        server_thread.start()
-        running = True
-        utils.WEB_SERVER_ACTIVE = True
-        print(f"\n{Colors.GREEN}[✔] Tactical Web Dashboard launched at http://{host}:{port}{Colors.ENDC}")
-    
-    # Return immediately to main menu without blocking input
-    import time
-    time.sleep(1.2)
+        log = conn.execute("SELECT id, tool_name, target, timestamp, output FROM scan_logs WHERE id = ?", (log_id,)).fetchone()
+        if not log:
+            return "Log not found", 404
+        return render_template_string(LOG_DETAIL_TEMPLATE, log=log)
 
 def is_server_running():
-    return running
+    """Check if the local telemetry server port is active."""
+    config = load_config() or {}
+    host = config.get("server_host", "127.0.0.1")
+    port = config.get("server_port", 5000)
+    try:
+        with socket.create_connection((host, port), timeout=0.5):
+            return True
+    except Exception:
+        return False
+
+def toggle_web_server():
+    """Start or stop the background telemetry web server safely."""
+    config = load_config() or {}
+    host = config.get("server_host", "127.0.0.1")
+    port = config.get("server_port", 5000)
+    
+    running = is_server_running()
+    
+    clear_screen()
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
+    print_tactical_header()
+    print("=== TELEMETRY WEB SERVER DASHBOARD ===".center(60))
+    print("-" * 60)
+    
+    if running:
+        print(f"[*] Status: {Colors.GREEN}ONLINE [✔]{Colors.ENDC}")
+        print(f"[*] Web Dashboard URL: http://{host}:{port}")
+        print("-" * 60)
+        action = input(f"{Colors.YELLOW}Would you like instructions to stop the web server? (y/N): {Colors.ENDC}").strip().lower()
+        if action in ['y', 'yes']:
+            print(f"{Colors.YELLOW}[*] To stop the server, terminate background python/flask processes via Quick-Shell (Phase 9).{Colors.ENDC}")
+    else:
+        print(f"[*] Status: {Colors.RED}OFFLINE [✘]{Colors.ENDC}")
+        print("-" * 60)
+        action = input(f"{Colors.YELLOW}Would you like to start the web server in the background? (y/N): {Colors.ENDC}").strip().lower()
+        if action in ['y', 'yes']:
+            print(f"{Colors.GREEN}[+] Launching web server on http://{host}:{port}...{Colors.ENDC}")
+            try:
+                import sys
+                subprocess.Popen([sys.executable, "-m", "magic_hat.server"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                print(f"{Colors.GREEN}[✔] Web server initiated in background.{Colors.ENDC}")
+            except Exception as e:
+                print(f"{Colors.RED}[-] Failed to start server: {e}{Colors.ENDC}")
+                
+    input(f"{Colors.YELLOW}\nPress Enter to return to main menu...{Colors.ENDC}")
+
+if __name__ == "__main__":
+    config = load_config() or {}
+    host = config.get("server_host", "127.0.0.1")
+    port = config.get("server_port", 5000)
+    app.run(host=host, port=port, debug=False)

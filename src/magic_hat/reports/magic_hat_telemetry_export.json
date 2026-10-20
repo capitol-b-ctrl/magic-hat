@@ -1,0 +1,58 @@
+[
+    {
+        "id": 7,
+        "tool_name": "Wireless Recon",
+        "target": "Airspace",
+        "metadata_json": "{}",
+        "output": "[-] Wi-Fi scanner ('nmcli') requires NetworkManager daemon, which is restricted in Termux without root/proot.",
+        "timestamp": "2026-10-19 18:09:16"
+    },
+    {
+        "id": 6,
+        "tool_name": "Wireless Recon",
+        "target": "Airspace",
+        "metadata_json": "{}",
+        "output": "[-] Wireless query failed: Command '['ip', 'link']' returned non-zero exit status 1.",
+        "timestamp": "2026-10-19 18:09:05"
+    },
+    {
+        "id": 5,
+        "tool_name": "Web Fuzzer",
+        "target": "http://192.168.8.0/24/FUZZ",
+        "metadata_json": "{}",
+        "output": "",
+        "timestamp": "2026-10-19 18:08:07"
+    },
+    {
+        "id": 4,
+        "tool_name": "Pipeline Stage 2: Port Scan",
+        "target": "192.168.8.0/24",
+        "metadata_json": "{}",
+        "output": "Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-19 18:06 -0700\nNmap scan report for console.gl-inet.com (192.168.8.1)\nHost is up (0.0099s latency).\nNot shown: 94 closed tcp ports (conn-refused)\nPORT     STATE SERVICE\n53/tcp   open  domain\n80/tcp   open  http\n443/tcp  open  https\n445/tcp  open  microsoft-ds\n8080/tcp open  http-proxy\n8443/tcp open  https-alt\n\nNmap scan report for Roku.lan (192.168.8.119)\nHost is up (0.28s latency).\nAll 100 scanned ports on Roku.lan (192.168.8.119) are in ignored states.\nNot shown: 100 closed tcp ports (conn-refused)\n\nNmap scan report for Brandon-s-A16.lan (192.168.8.139)\nHost is up (0.0038s latency).\nAll 100 scanned ports on Brandon-s-A16.lan (192.168.8.139) are in ignored states.\nNot shown: 100 closed tcp ports (conn-refused)\n\nNmap scan report for Google-Home-Mini.lan (192.168.8.150)\nHost is up (0.034s latency).\nNot shown: 97 closed tcp ports (conn-refused)\nPORT     STATE SERVICE\n8008/tcp open  http\n8009/tcp open  ajp13\n8443/tcp open  https-alt\n\nNmap scan report for 192.168.8.183\nHost is up (0.022s latency).\nNot shown: 97 closed tcp ports (conn-refused)\nPORT     STATE SERVICE\n8008/tcp open  http\n8009/tcp open  ajp13\n8443/tcp open  https-alt\n\nNmap done: 256 IP addresses (5 hosts up) scanned in 6.50 seconds\n",
+        "timestamp": "2026-10-19 18:07:04"
+    },
+    {
+        "id": 3,
+        "tool_name": "Pipeline Stage 1: Sweep",
+        "target": "192.168.8.0/24",
+        "metadata_json": "{}",
+        "output": "Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-19 18:06 -0700\nNmap scan report for console.gl-inet.com (192.168.8.1)\nHost is up (0.016s latency).\nNmap scan report for Roku.lan (192.168.8.119)\nHost is up (0.040s latency).\nNmap scan report for Brandon-s-A16.lan (192.168.8.139)\nHost is up (0.000094s latency).\nNmap scan report for Google-Home-Mini.lan (192.168.8.150)\nHost is up (0.047s latency).\nNmap scan report for 192.168.8.183\nHost is up (0.020s latency).\nNmap done: 256 IP addresses (5 hosts up) scanned in 2.67 seconds\n",
+        "timestamp": "2026-10-19 18:06:57"
+    },
+    {
+        "id": 2,
+        "tool_name": "Subnet Sweep",
+        "target": "192.168.8.0/24",
+        "metadata_json": "{}",
+        "output": "Starting Nmap 7.99 ( https://nmap.org ) at 2026-10-19 18:06 -0700\nNmap scan report for console.gl-inet.com (192.168.8.1)\nHost is up (0.010s latency).\nNmap scan report for Roku.lan (192.168.8.119)\nHost is up (0.037s latency).\nNmap scan report for Brandon-s-A16.lan (192.168.8.139)\nHost is up (0.011s latency).\nNmap scan report for Google-Home-Mini.lan (192.168.8.150)\nHost is up (0.086s latency).\nNmap scan report for 192.168.8.183\nHost is up (0.039s latency).\nNmap done: 256 IP addresses (5 hosts up) scanned in 2.68 seconds\n",
+        "timestamp": "2026-10-19 18:06:41"
+    },
+    {
+        "id": 1,
+        "tool_name": "Wireless & BT Scanner",
+        "target": "Local Airspace",
+        "metadata_json": "{}",
+        "output": "Executed airspace scan via Termux API/binaries",
+        "timestamp": "2026-10-19 18:06:28"
+    }
+]
