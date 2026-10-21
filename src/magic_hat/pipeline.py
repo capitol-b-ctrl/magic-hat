@@ -46,7 +46,7 @@ def run_autopilot_pipeline():
         print(f"{Colors.YELLOW}[!] Pipeline is already executing in the background...{Colors.ENDC}")
     else:
         print(f"[*] Current Pipeline State: {utils.PIPELINE_STATE}")
-        choice = input(f"{Colors.YELLOW}Launch pipeline in background? [y/N]: {Colors.ENDC}").strip().lower()
+        choice = input(f"{Colors.YELLOW}Launch pipeline in background? [Y/N]: {Colors.ENDC}").strip().lower()
         if choice in ['y', 'yes']:
             t = threading.Thread(target=_background_pipeline_task, daemon=True)
             t.start()

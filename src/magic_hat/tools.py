@@ -214,7 +214,7 @@ def handle_nmap_menu():
         if choice in ["99", "b", "back"]:
             break
             
-        use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+        use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [Y/N]: {Colors.ENDC}").strip().lower()
         target = None
         if use_intel in ['y', 'yes']:
             target = select_target_interactive()
@@ -325,7 +325,7 @@ def handle_web_fuzzer():
     """Tool 3: Web Directory Fuzzer (ffuf wrapper)."""
     print_target_context("=== PAGE: WEB DIR FUZZER (FFUF) ===")
     
-    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [Y/N]: {Colors.ENDC}").strip().lower()
     url = None
     if use_intel in ['y', 'yes']:
         url = select_target_interactive()
@@ -416,7 +416,7 @@ def handle_tech_fingerprint():
     """Tool 5: Web Tech Fingerprinting (whatweb wrapper)."""
     print_target_context("=== PAGE: WEB TECH FINGERPRINT (WHATWEB) ===")
     
-    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [Y/N]: {Colors.ENDC}").strip().lower()
     target = None
     if use_intel in ['y', 'yes']:
         target = select_target_interactive()
@@ -563,7 +563,7 @@ def handle_hash_identifier():
         print(f"    - {fmt}")
     print("-" * 60)
     
-    run_crack = input(f"{Colors.YELLOW}Would you like to invoke hashcat against this hash? (y/n): {Colors.ENDC}").strip().lower()
+    run_crack = input(f"{Colors.YELLOW}Would you like to invoke hashcat against this hash? (Y/N): {Colors.ENDC}").strip().lower()
     if run_crack == 'y':
         mode = input(f"{Colors.YELLOW}Enter hashcat mode number (e.g., 0 for MD5, 1000 for NTLM): {Colors.ENDC}").strip()
         wordlist = input(f"{Colors.YELLOW}Enter wordlist path: {Colors.ENDC}").strip()
@@ -612,7 +612,7 @@ def handle_hydra_audit():
     """Tool 10: Credential & Service Auditor (hydra wrapper)."""
     print_target_context("=== PAGE: CREDENTIAL AUDITOR (HYDRA) ===")
     
-    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [Y/N]: {Colors.ENDC}").strip().lower()
     target = None
     if use_intel in ['y', 'yes']:
         target = select_target_interactive()
@@ -785,7 +785,7 @@ def handle_ssh_audit():
     """Tool: SSH Remote Execution & Banner/Key Auditor."""
     print_target_context("=== PAGE: SSH AUDITOR & REMOTE ACCESS ===")
     
-    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [y/N]: {Colors.ENDC}").strip().lower()
+    use_intel = input(f"{Colors.YELLOW}Select target from intelligence database? [Y/N]: {Colors.ENDC}").strip().lower()
     target = None
     if use_intel in ['y', 'yes']:
         target = select_target_interactive()

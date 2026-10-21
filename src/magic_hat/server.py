@@ -313,13 +313,13 @@ def toggle_web_server():
         print(f"[*] Status: {Colors.GREEN}ONLINE [✔]{Colors.ENDC}")
         print(f"[*] Web Dashboard URL: http://{host}:{port}")
         print("-" * 60)
-        action = input(f"{Colors.YELLOW}Would you like instructions to stop the web server? (y/N): {Colors.ENDC}").strip().lower()
+        action = input(f"{Colors.YELLOW}Would you like instructions to stop the web server? (Y/N): {Colors.ENDC}").strip().lower()
         if action in ['y', 'yes']:
             print(f"{Colors.YELLOW}[*] To stop the server, terminate background python/flask processes via Quick-Shell (Phase 9).{Colors.ENDC}")
     else:
         print(f"[*] Status: {Colors.RED}OFFLINE [✘]{Colors.ENDC}")
         print("-" * 60)
-        action = input(f"{Colors.YELLOW}Would you like to start the web server in the background? (y/N): {Colors.ENDC}").strip().lower()
+        action = input(f"{Colors.YELLOW}Would you like to start the web server in the background? (Y/N): {Colors.ENDC}").strip().lower()
         if action in ['y', 'yes']:
             print(f"{Colors.GREEN}[+] Launching web server on http://{host}:{port}...{Colors.ENDC}")
             try:

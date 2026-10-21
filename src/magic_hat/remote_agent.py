@@ -22,7 +22,7 @@ def run_remote_telemetry_agent():
     print(f"[*] User         : {username}")
     print("-" * 60)
     
-    confirm = input(f"{Colors.YELLOW}Execute automated remote telemetry audit? (Y/n): {Colors.ENDC}").strip().lower()
+    confirm = input(f"{Colors.YELLOW}Execute automated remote telemetry audit? (Y/N): {Colors.ENDC}").strip().lower()
     if confirm in ['n', 'no']:
         return
 
