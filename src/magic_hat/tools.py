@@ -7,6 +7,7 @@ import re
 import base64
 from magic_hat.database import log_scan, get_scan_logs, get_connection
 from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, print_tactical_header, get_subnet_range, send_notification, Colors, ACTIVE_SCOPE, WEBHOOK_CONFIG
+from magic_hat.server import is_server_running, toggle_web_server, log_detail
 
 import qrcode  # Requires: pip install qrcode
 import socket
@@ -147,31 +148,41 @@ def select_target_interactive():
     """Display recent discovered targets from the database and let the user pick one."""
     logs = get_scan_logs()
     if not logs:
+        print(f"{Colors.YELLOW}[!] No scan logs or targets found in database.{Colors.ENDC}")
         return None
         
     discovered_hosts = set()
-    for log in logs:
-        target = log['target']
-        if target and target not in ["Local Airspace", "Airspace"]:
-            discovered_hosts.add(target)
+    for log_entry in logs:
+        # Handles both dictionary and SQLite Row tuple formats safely
+        if isinstance(log_entry, dict):
+            target_val = log_entry.get('target')
+            tool_name = log_entry.get('tool_name', '')
+            output_text = log_entry.get('output', '')
+        else:
+            # Fallback for tuple/row formats: (id, timestamp, scan_type, target, output)
+            target_val = log_entry[3] if len(log_entry) > 3 else None
+            tool_name = log_entry[2] if len(log_entry) > 2 else ''
+            output_text = log_entry[4] if len(log_entry) > 4 else ''
+
+        if target_val and target_val not in ["Local Airspace", "Airspace", "Local Host"]:
+            discovered_hosts.add(target_val)
             
-        if "Nmap" in log['tool_name'] or "Sweep" in log['tool_name'] or "Pipeline" in log['tool_name']:
-            output = log.get('output', '')
-            ips = re.findall(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b", output)
+        if any(keyword in tool_name for keyword in ["Nmap", "Sweep", "Pipeline"]):
+            ips = re.findall(r"\b(?:[0-9]{1,3}\.){3}[0-9]{1,3}\b", output_text)
             for ip in ips:
                 if not ip.startswith("8.8.") and ip != "255.255.255.255":
                     discovered_hosts.add(ip)
 
     hosts_list = sorted(list(discovered_hosts))
     if not hosts_list:
+        print(f"{Colors.YELLOW}[!] No distinct host targets parsed from recent logs.{Colors.ENDC}")
         return None
 
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== INTELLIGENCE TARGET SELECTOR ===".center(60))
     print("-" * 60)
-    print("Discovered targets from pipeline & recent telemetry:")
+    print("Discovered targets from database logs:")
     for idx, host in enumerate(hosts_list, 1):
         print(f"  {Colors.BOLD}{idx}.{Colors.ENDC} {host}")
     print(f"  {Colors.RED}0.{Colors.ENDC} Enter manually")
@@ -184,6 +195,7 @@ def select_target_interactive():
             selected = hosts_list[c_idx - 1]
             print(f"{Colors.GREEN}[*] Auto-selected Target from Database: {selected}{Colors.ENDC}")
             return selected
+            
     return None
 
 def handle_nmap_menu():

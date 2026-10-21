@@ -5,7 +5,6 @@ import json
 from magic_hat.database import (
     get_scan_logs, 
     get_connection, 
-    clear_scan_logs
     )
 from magic_hat.utils import (
     clear_screen, 

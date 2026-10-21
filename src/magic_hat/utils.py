@@ -8,6 +8,7 @@ import json
 import shutil
 import subprocess
 import urllib.request
+import socket
 
 
 # Global engagement target state
@@ -128,6 +129,7 @@ def print_tactical_header():
     global_target = ACTIVE_SCOPE.get("target")
     scope_str = f"{Colors.CYAN}{global_target}{Colors.ENDC}" if global_target else f"{Colors.YELLOW}None (Not Locked){Colors.ENDC}"
 
+    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC} ")
     print("-" * 60)
     print(f" [*] Host Device IP      : {host_ip_str}")
     print(f" [*] Global Target Scope : {scope_str}")

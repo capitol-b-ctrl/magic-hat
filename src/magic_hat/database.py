@@ -6,58 +6,68 @@ import json
 from datetime import datetime
 from magic_hat.utils import Colors
 
-DB_PATH = os.path.expanduser("~/magic_hat_telemetry.db")
-
-def get_connection():
-    """Establish a connection to the SQLite telemetry database."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
-# Database path stored locally in project directory
-DB_PATH = os.path.expanduser("~/Magic_Hat/magic_hat.db")
+DB_PATH = os.path.expanduser("~/Magic_Hat/src/magic_hat/data/magic_hat.db")
 
 def init_db():
-    """Initialize the SQLite database and required tables if they don't exist."""
+    """Initialize the SQLite database and ensure schema is up to date."""
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    # Drop old table to enforce fresh schema during active development
+    cursor.execute('DROP TABLE IF EXISTS scan_logs')
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS scan_logs (
+        CREATE TABLE scan_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
             scan_type TEXT,
             target TEXT,
-            output TEXT
+            output TEXT,
+            metadata TEXT
         )
     ''')
     conn.commit()
     conn.close()
 
-def log_scan_result(scan_type, target, output):
+def log_scan_result(scan_type, target, output, metadata=None):
     """Logs scan results or remote telemetry into the SQLite database."""
     init_db()
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
+    
+    # Safely convert dict/list metadata into JSON string if provided
+    meta_str = json.dumps(metadata) if metadata is not None else None
+    
     cursor.execute('''
-        INSERT INTO scan_logs (scan_type, target, output)
-        VALUES (?, ?, ?)
-    ''', (scan_type, target, output))
+        INSERT INTO scan_logs (scan_type, target, output, metadata)
+        VALUES (?, ?, ?, ?)
+    ''', (scan_type, target, output, meta_str))
     conn.commit()
     conn.close()
-    
-    
-def get_scan_logs():
-    """Retrieve all logged scans."""
-    init_db()
-    with get_connection() as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, tool_name, target, timestamp FROM scan_logs ORDER BY id DESC")
-        return [dict(row) for row in cursor.fetchall()]
 
-def clear_scan_logs():
-    """Purge all scan logs and telemetry records from the database."""
+# Alias log_scan to log_scan_result
+log_scan = log_scan_result
+
+def get_scan_logs():
+    """Retrieve all logged scan results from the database."""
     init_db()
-    with get_connection() as conn:
-        conn.execute("DELETE FROM scan_logs")
-        conn.execute("DELETE FROM sqlite_sequence WHERE name='scan_logs'")
-        conn.commit()
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('SELECT id, timestamp, scan_type, target, output FROM scan_logs ORDER BY timestamp DESC')
+    rows = cursor.fetchall()
+    conn.close()
+    
+    # Format rows into standard list of dictionaries
+    logs = []
+    for row in rows:
+        logs.append({
+            'id': row[0],
+            'timestamp': row[1],
+            'tool_name': row[2],
+            'target': row[3],
+            'output': row[4]
+        })
+    return logs
+
+def get_connection():
+    """Return a direct sqlite3 connection for custom queries."""
+    init_db()
+    return sqlite3.connect(DB_PATH)
