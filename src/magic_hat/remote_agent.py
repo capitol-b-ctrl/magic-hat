@@ -1,63 +1,77 @@
-"""Automated remote telemetry and session management agent for Magic Hat."""
+"""Automated Remote Telemetry Agent for Magic Hat framework."""
 
 import paramiko
-from magic_hat.database import log_scan_result
-from magic_hat.utils import Colors, clear_screen, print_tactical_header, load_config
+import sys
+from magic_hat.utils import clear_screen, print_tactical_header, Colors
+from magic_hat.database import log_scan
 
 def run_remote_telemetry_agent():
-    """Connects to the global target or default router, pulls telemetry, and logs it."""
+    """Connects to the GL.iNet router via Paramiko SSH, executes telemetry diagnostics, and logs output."""
     clear_screen()
     print_tactical_header()
     print("=== AUTOMATED REMOTE TELEMETRY AGENT ===".center(60))
     print("-" * 60)
     
-    # Load config or default to your GL.iNet router
-    config = load_config() or {}
-    target_ip = config.get("global_target", "192.168.8.1")
-    port = int(config.get("ssh_port", 2222))
-    username = "root"
-    password = "Magician$612"
+    target = input(f"{Colors.YELLOW}Enter target router IP [default 192.168.8.1]: {Colors.ENDC}").strip() or "192.168.8.1"
+    port = int(input(f"{Colors.YELLOW}Enter SSH port [default 2222]: {Colors.ENDC}").strip() or "2222")
+    user = input(f"{Colors.YELLOW}Enter SSH username [default root]: {Colors.ENDC}").strip() or "root"
+    password = input(f"{Colors.YELLOW}Enter SSH password: {Colors.ENDC}").strip()
     
-    print(f"[*] Target Scope : {target_ip}:{port}")
-    print(f"[*] User         : {username}")
-    print("-" * 60)
-    
-    confirm = input(f"{Colors.YELLOW}Execute automated remote telemetry audit? (Y/N): {Colors.ENDC}").strip().lower()
-    if confirm in ['n', 'no']:
-        return
-
-    client = paramiko.SSHClient()
-    client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    print(f"\n{Colors.GREEN}[*] Establishing secure SSH session to {target}:{port}...{Colors.ENDC}")
     
     try:
-        print(f"\n{Colors.YELLOW}[*] Establishing secure SSH session to {target_ip}...{Colors.ENDC}")
-        client.connect(target_ip, port=port, username=username, password=password, timeout=5)
-        print(f"{Colors.GREEN}[✔] Authentication successful! Gathering system state...{Colors.ENDC}")
+        # Safely convert the tuple of preferred public keys to a list, append ssh-rsa, and convert back
+        try:
+            pubkeys = list(paramiko.transport.Transport._preferred_pubkeys)
+            if 'ssh-rsa' not in pubkeys:
+                pubkeys.append('ssh-rsa')
+            paramiko.transport.Transport._preferred_pubkeys = tuple(pubkeys)
+        except Exception:
+            pass
+            
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         
+        client.connect(
+            hostname=target,
+            port=port,
+            username=user,
+            password=password,
+            timeout=10,
+            allow_agent=False,
+            look_for_keys=False
+        )
+        
+        print(f"{Colors.GREEN}[✔] Authenticated successfully. Gathering remote telemetry...{Colors.ENDC}")
+        
+        # Execute diagnostic commands on the router
         commands = [
+            "uname -a",
             "uptime",
-            "iwinfo",
-            "cat /proc/loadavg",
-            "netstat -an | grep ESTABLISHED",
-            "uci show wireless"
+            "cat /etc/openwrt_release",
+            "df -h",
+            "ubus call system board"
         ]
         
-        aggregated_output = ""
+        telemetry_output = ""
         for cmd in commands:
-            print(f"    -> Running: {cmd}")
             stdin, stdout, stderr = client.exec_command(cmd)
-            output = stdout.read().decode()
-            error = stderr.read().decode()
-            aggregated_output += f"--- CMD: {cmd} ---\n{output}\n"
-            if error:
-                aggregated_output += f"STDERR:\n{error}\n"
+            out = stdout.read().decode('utf-8')
+            err = stderr.read().decode('utf-8')
+            telemetry_output += f"--- CMD: {cmd} ---\n{out}\n{err}\n"
             
-        # Log results to Magic Hat SQLite database
-        log_scan_result("Remote-Telemetry-Agent", target_ip, aggregated_output)
-        print(f"\n{Colors.GREEN}[+] Telemetry successfully pulled and archived into database!{Colors.ENDC}")
+        client.close()
+        
+        clear_screen()
+        print_tactical_header()
+        print(f"=== REMOTE TELEMETRY REPORT: {target} ===".center(60))
+        print(telemetry_output)
+        print("-" * 60)
+        
+        log_scan("Remote Telemetry Agent", target, telemetry_output)
+        print(f"{Colors.GREEN}[✔] Remote telemetry logged to database successfully.{Colors.ENDC}")
         
     except Exception as e:
-        print(f"\n{Colors.RED}[-] Remote telemetry collection failed: {e}{Colors.ENDC}")
-    finally:
-        client.close()
-        input(f"\n{Colors.YELLOW}Press Enter to return to main menu...{Colors.ENDC}")
+        print(f"{Colors.RED}\n[-] Remote telemetry collection failed: {e}{Colors.ENDC}")
+        
+    input(f"{Colors.YELLOW}\nPress Enter to return to main menu...{Colors.ENDC}")

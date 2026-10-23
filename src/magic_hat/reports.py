@@ -4,19 +4,19 @@ import os
 import json
 from magic_hat.database import (
     get_scan_logs, 
-    get_connection, 
-    )
+    get_connection,
+    clear_scan_logs
+)
 from magic_hat.utils import (
     clear_screen, 
     BANNER_IMAGE, 
     print_tactical_header, 
     Colors
-    )
+)
 
 def export_engagement_report():
     """Export all SQLite scan logs into a structured Markdown and JSON report."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== ENGAGEMENT REPORT GENERATOR ===".center(60))
     print("-" * 60)
@@ -29,10 +29,11 @@ def export_engagement_report():
         
     report_filename = os.path.expanduser("~/Magic_Hat/src/magic_hat/reports/magic_hat_engagement_report.md")
     json_filename = os.path.expanduser("~/Magic_Hat/src/magic_hat/reports/magic_hat_telemetry_export.json")
+    os.makedirs(os.path.dirname(report_filename), exist_ok=True)
     
     full_data = []
     with get_connection() as conn:
-        rows = conn.execute("SELECT id, tool_name, target, metadata_json, output, timestamp FROM scan_logs ORDER BY id DESC").fetchall()
+        rows = conn.execute("SELECT id, tool_name, target, metadata, output, timestamp FROM scan_logs ORDER BY id DESC").fetchall()
         for r in rows:
             full_data.append(dict(r))
             
@@ -52,7 +53,7 @@ def export_engagement_report():
             mf.write(f"### Log ID: {item['id']} - {item['tool_name']}\n")
             mf.write(f"* **Target Space:** `{item['target']}`\n")
             mf.write(f"* **Timestamp:** `{item['timestamp']}`\n")
-            mf.write(f"* **Metadata:** `{item['metadata_json']}`\n\n")
+            mf.write(f"* **Metadata:** `{item.get('metadata')}`\n\n")
             mf.write("```text\n" + str(item['output'])[:2000] + "\n```\n\n")
             mf.write("---\n\n")
             
@@ -63,7 +64,6 @@ def export_engagement_report():
 def confirm_and_clear_database():
     """Prompt user for confirmation before purging all telemetry records."""
     clear_screen()
-    print(f"{Colors.RED}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PURGE TELEMETRY DATABASE ===".center(60))
     print("-" * 60)
@@ -82,7 +82,6 @@ def handle_report_menu():
     """Report management interface."""
     while True:
         clear_screen()
-        print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
         print_tactical_header()
         print("=== REPORT GENERATION & EXPORT MENU ===".center(60))
         print("-" * 60)

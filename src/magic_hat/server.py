@@ -270,19 +270,49 @@ DASHBOARD_HTML = """
 </html>
 """
 
+LOG_DETAIL_TEMPLATE = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>LOG DETAIL // {{ log['tool_name'] }}</title>
+    <style>
+        body { background: #000; color: #00ff66; font-family: 'Courier New', monospace; padding: 20px; }
+        a { color: #00aa44; text-decoration: none; font-weight: bold; }
+        a:hover { color: #00ff66; }
+        pre { background: #020803; border: 1px solid #00ff66; padding: 15px; border-radius: 4px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <a href="/">&larr; BACK TO DASHBOARD</a>
+    <h2>> {{ log['tool_name'] }} TELEMETRY</h2>
+    <p>Target: {{ log['target'] }} | Timestamp: {{ log['timestamp'] }}</p>
+    <pre>{{ log['output'] }}</pre>
+</body>
+</html>
+"""
+
 @app.route("/")
 def index():
     logs = get_scan_logs()
     unique_targets = len(set(log['target'] for log in logs if log['target']))
-    return render_template_string(DASHBOARD_TEMPLATE, logs=logs, total_logs=len(logs), unique_targets=unique_targets)
+    return render_template_string(DASHBOARD_HTML, logs=logs, total_logs=len(logs), unique_targets=unique_targets)
+
+@app.route("/api/logs/<int:log_id>")
+def api_log_detail(log_id):
+    with get_connection() as conn:
+        log = conn.execute("SELECT id, tool_name, target, timestamp, output, metadata FROM scan_logs WHERE id = ?", (log_id,)).fetchone()
+        if not log:
+            return jsonify({"error": "Log not found"}), 404
+        return jsonify(dict(log))
 
 @app.route("/log/<int:log_id>")
 def log_detail(log_id):
     with get_connection() as conn:
-        log = conn.execute("SELECT id, tool_name, target, timestamp, output FROM scan_logs WHERE id = ?", (log_id,)).fetchone()
+        log = conn.execute("SELECT id, tool_name, target, timestamp, output, metadata FROM scan_logs WHERE id = ?", (log_id,)).fetchone()
         if not log:
             return "Log not found", 404
-        return render_template_string(LOG_DETAIL_TEMPLATE, log=log)
+        return render_template_string(LOG_DETAIL_TEMPLATE, log=dict(log))
 
 def is_server_running():
     """Check if the local telemetry server port is active."""
@@ -304,7 +334,6 @@ def toggle_web_server():
     running = is_server_running()
     
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== TELEMETRY WEB SERVER DASHBOARD ===".center(60))
     print("-" * 60)

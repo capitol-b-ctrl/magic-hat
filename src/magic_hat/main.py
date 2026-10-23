@@ -12,7 +12,11 @@ from magic_hat.utils import (
     load_config,
     BANNER_IMAGE
 )
-from magic_hat.database import (log_scan, get_scan_logs, get_connection
+from magic_hat.database import (
+    init_db,
+    log_scan, 
+    get_scan_logs, 
+    get_connection
 )
 from magic_hat.reports import handle_report_menu
 
@@ -41,7 +45,7 @@ def main_menu():
         clear_screen()
         print_tactical_header()
         
-        print(f"{Colors.CYAN}[ OPERATIONAL PHASES & MODULES ]{Colors.ENDC}")
+        print(f"{Colors.CYAN}[ OPERATIONAL MODULES ]{Colors.ENDC}".center(60))
         print("-" * 60  )
         print(f"  {Colors.GREEN}[1]{Colors.ENDC} Phase 1: Offensive & Tactical Deployment Suite")
         print(f"  {Colors.GREEN}[2]{Colors.ENDC} Phase 2: Network Mapping & Subnet Discovery")
@@ -56,12 +60,15 @@ def main_menu():
         print(f"  {Colors.GREEN}[11]{Colors.ENDC} Phase 11: Tactical Report Generation")
         print(f"  {Colors.GREEN}[12]{Colors.ENDC} Phase 12: Automated Remote Telemetry Agent")
         print(f"{Colors.YELLOW}" + "-" * 60 + f"{Colors.ENDC}")
-        print(f"  {Colors.RED}[13]{Colors.ENDC} Exit Framework")
+        print(f"  {Colors.RED}[13] [b] [99]{Colors.ENDC} Exit Framework".center(60))
         print(f"{Colors.YELLOW}" + "-" * 60 + f"{Colors.ENDC}")
         
         choice = input(f"{Colors.YELLOW}Select operational phase [1-13]: {Colors.ENDC}").strip()
         
-        if choice == '1':
+        if choice in ["b", "99", "13"]:
+            print (f"\n{Colors.CYAN}[*] Shutting down Magic Hat. Stay safe operator.{Colors.ENDC}")
+            sys.exit(0)
+        elif choice == '1':
             display_offensive_suite()
         elif choice == '2':
             handle_subnet_sweep()
@@ -85,9 +92,6 @@ def main_menu():
             handle_report_menu()
         elif choice == '12':
             run_remote_telemetry_agent()
-        elif choice == '13':
-            print(f"\n{Colors.CYAN}[*] Shutting down Magic Hat. Stay safe, operator.{Colors.ENDC}")
-            sys.exit(0)
         else:
             print(f"\n{Colors.RED}[-] Invalid selection. Choose between 1 and 13.{Colors.ENDC}")
             input(f"{Colors.YELLOW}Press Enter to continue...{Colors.ENDC}")

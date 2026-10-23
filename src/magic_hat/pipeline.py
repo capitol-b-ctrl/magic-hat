@@ -35,7 +35,6 @@ def _background_pipeline_task():
 def run_autopilot_pipeline():
     """Trigger background pipeline execution and return instantly to menu."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== AUTO-PILOT RECONNAISSANCE PIPELINE ===".center(60))
     print("-" * 60)

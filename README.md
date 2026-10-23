@@ -1,12 +1,12 @@
 # MAGIC HAT // Tactical Red-Team & Security Auditing Framework
 
-**Magic Hat** is a professional-grade, field-deployable security reconnaissance and auditing framework optimized for mobile environments (Termux), headless edge hardware, and tactical engagements. It provides a structured 6-phase lifecycle workflow, real-time structured SQLite telemetry, high-contrast terminal styling, and a built-in Flask web command center.
+**Magic Hat** is a professional-grade, field-deployable security reconnaissance and auditing framework optimized for mobile environments (Termux), headless edge hardware, and tactical engagements. It provides a structured 12-phase lifecycle workflow, real-time structured SQLite telemetry, high-contrast terminal styling, and a built-in Flask web command center.
 
 ---
 
 ## 🚀 Key Features
 
-* **6-Phase Security Auditing Lifecycle:** Standardized workflows covering Scope & Airspace Recon, Active Discovery, Vulnerability Analysis, Auto-Pilot Pipelines, Telemetry, and Reporting.
+* **12-Phase Security Auditing Lifecycle:** Standardized workflows covering Scope & Airspace Recon, Active Discovery, Vulnerability Analysis, Auto-Pilot Pipelines, Telemetry, and Reporting.
 * **Centralized Configuration (`config.json`):** Easily modify default subnets, wordlists, server hosts, and binary parameters without modifying source code.
 * **Pre-Flight Dependency Verification (`--check-deps`):** Automatically inspects `$PATH` for essential binaries (`nmap`, `tshark`, `ffuf`, `dig`, `searchsploit`, `pwsh`, `ssh`) before execution.
 * **Headless Field Automation (`--headless`):** Run background reconnaissance scans against custom CIDR ranges directly from cron jobs or headless hardware implants.
@@ -88,15 +88,16 @@ From the interactive menu, select Phase 5 to toggle the local web server, then o
 
 ## 📋 Security Auditing Lifecycle Phases
 
- * Phase 1: Scope & Airspace Recon — Wireless and Bluetooth interface management & monitor mode toggling.
- 
- * Phase 2: Active Network Discovery — ARP and Ping subnet host sweeping.
- 
- * Phase 3: Vulnerability & Service Audit Suite — Access Nmap deep profilers, SSH auditing, PowerShell Core/WinRM tools, Ffuf, and Exploit-DB searches.
- 
- * Phase 4: Auto-Pilot Assessment Pipeline — Chained multi-stage background scans.
- 
- * Phase 5: Telemetry Server — Real-time Flask command center and log browser.
- 
- * Phase 6: Audit Archives & Reporting — Export clean Markdown and JSON engagement summaries.
+* **Phase 1: Offensive & Tactical Deployment Suite** — Access Nmap profilers, packet sniffers (`tshark`), web fuzzers (`ffuf`), DNS footprinting, reverse shell generators, QR vectors, and Bluetooth attack tools.
+* **Phase 2: Network Mapping & Subnet Discovery** — ARP and ping sweeps across local and custom CIDR ranges.
+* **Phase 3: Vulnerability & Service Audit Suite** — Multi-protocol credential auditing with Hydra.
+* **Phase 4: Wireless & Airspace Intelligence** — Wi-Fi network scanning, BLE beacons, and RF recon.
+* **Phase 5: Flask Web Dashboard Control** — Start/stop the background matrix command center and log viewer at `http://127.0.0.1:8080`.
+* **Phase 6: Global Target Scope Manager** — Lock or clear active targets across all framework modules.
+* **Phase 7: Binary Health Diagnostics** — Pre-flight inspection of required system binaries and packages.
+* **Phase 8: Webhook / Notification Hub** — Outbound alert webhooks (Discord / Telegram) for scan status notifications.
+* **Phase 9: Operator Quick-Shell Launcher** — Fast terminal escape shell for direct system commands.
+* **Phase 10: Scan Archives & Telemetry Logs** — Interactive terminal browser for all recorded scans.
+* **Phase 11: Tactical Report Generation** — One-click export to Markdown (`.md`) and JSON format, plus database purge options.
+* **Phase 12: Automated Remote Telemetry Agent** — SSH into edge hardware (e.g. GL.iNet / OpenWrt routers) to gather board and system telemetry.
 

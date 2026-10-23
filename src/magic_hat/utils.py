@@ -150,9 +150,28 @@ def send_notification(message):
         pass
 
 def check_dependencies():
-    """Verify basic startup dependencies."""
-    pass
+    """Verify basic startup dependencies and return dict of status."""
+    config = load_config()
+    binaries = config.get("required_binaries", ["nmap", "tshark", "ffuf", "dig", "searchsploit"])
+    results = {}
+    for b in binaries:
+        results[b] = shutil.which(b) is not None
+    return results
 
 def load_config():
-    """Load framework configuration."""
-    pass
+    """Load framework configuration from config.json with fallback defaults."""
+    config_path = os.path.join(os.path.dirname(__file__), "config.json")
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r") as cf:
+                return json.load(cf)
+        except Exception:
+            pass
+    return {
+        "default_subnet": "192.168.1.0/24",
+        "default_wordlist": "/data/data/com.termux/files/usr/share/wordlists/dirb/common.txt",
+        "server_host": "127.0.0.1",
+        "server_port": 8080,
+        "required_binaries": ["nmap", "tshark", "ffuf", "dig", "searchsploit"],
+        "webhook_url": ""
+    }

@@ -5,12 +5,16 @@ import shutil
 import subprocess
 import re
 import base64
-from magic_hat.database import log_scan, get_scan_logs, get_connection
+from magic_hat.database import log_scan_result, get_scan_logs, get_connection
 from magic_hat.utils import BANNER_IMAGE, clear_screen, get_all_device_ips, print_tactical_header, get_subnet_range, send_notification, Colors, ACTIVE_SCOPE, WEBHOOK_CONFIG
 from magic_hat.server import is_server_running, toggle_web_server, log_detail
 
 import qrcode  # Requires: pip install qrcode
 import socket
+import sqlite3
+import json
+import shutil
+
 
 
 
@@ -128,7 +132,6 @@ def parse_nmap_deep_telemetry(nmap_output):
 def print_target_context(tool_title):
     """Print tactical header, active network interfaces/subnets, and page title."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     
     ips = get_all_device_ips()
@@ -272,7 +275,7 @@ def handle_nmap_menu():
                 print(output[:1500])
             print("-" * 60)
             
-            log_scan("Nmap Deep Recon", target, output, metadata=telemetry)
+            log_scan_result("Nmap Deep Recon", target, output, metadata=telemetry)
             print(f"{Colors.GREEN}[✔] Rich target profile logged successfully to database.{Colors.ENDC}")
         except subprocess.CalledProcessError as e:
             print(f"{Colors.RED}\n[-] Nmap failed: {e.stderr or str(e)}{Colors.ENDC}")
@@ -311,7 +314,7 @@ def handle_net_shark():
         print(f"=== PACKET CAPTURE RESULTS: {iface} ===".center(60))
         print(output)
         
-        log_scan("Net Shark", iface, output)
+        log_scan_result("Net Shark", iface, output)
         print(f"{Colors.GREEN}\n[✔] Packet capture logged to database.{Colors.ENDC}")
     except subprocess.CalledProcessError as e:
         print(f"{Colors.RED}\n[-] Tshark failed: {e.stderr or str(e)}{Colors.ENDC}")
@@ -359,7 +362,7 @@ def handle_web_fuzzer():
         print(f"=== FFUF DISCOVERY RESULTS ===".center(60))
         print(output if output else f"{Colors.YELLOW}[*] Scan completed, but no standard output captured.{Colors.ENDC}")
         
-        log_scan("Web Fuzzer", url, output)
+        log_scan_result("Web Fuzzer", url, output)
         print(f"{Colors.GREEN}\n[✔] Web fuzzing results successfully logged to database.{Colors.ENDC}")
     except subprocess.CalledProcessError as e:
         print(f"{Colors.RED}\n[-] FFUF failed: {e.stderr or str(e)}{Colors.ENDC}")
@@ -403,7 +406,7 @@ def handle_dns_recon():
         print(f"=== DNS RESULTS ({domain}) ===".center(60))
         print(output)
         
-        log_scan("DNS Recon", domain, output)
+        log_scan_result("DNS Recon", domain, output)
         print(f"{Colors.GREEN}\n[✔] DNS footprint logged to database.{Colors.ENDC}")
     except subprocess.CalledProcessError as e:
         print(f"{Colors.RED}\n[-] Dig failed: {e.stderr or str(e)}{Colors.ENDC}")
@@ -438,7 +441,7 @@ def handle_tech_fingerprint():
         print(f"=== TECH STACK REPORT: {target} ===".center(60))
         print(output)
         
-        log_scan("Tech Fingerprint", target, output)
+        log_scan_result("Tech Fingerprint", target, output)
         print(f"{Colors.GREEN}\n[✔] Fingerprint results logged to database.{Colors.ENDC}")
     except subprocess.CalledProcessError as e:
         print(f"{Colors.RED}\n[-] WhatWeb failed: {e.stderr or str(e)}{Colors.ENDC}")
@@ -475,7 +478,7 @@ def handle_subnet_sweep():
         print(f"=== LIVE HOST DISCOVERY: {target_sub} ===".center(60))
         print(output)
         
-        log_scan("Subnet Sweep", target_sub, output)
+        log_scan_result("Subnet Sweep", target_sub, output)
         send_notification(f"Subnet Sweep Complete: Discovered live hosts on {target_sub}")
         print(f"{Colors.GREEN}\n[✔] Sweep results logged and notification triggered.{Colors.ENDC}")
     except Exception as e:
@@ -486,7 +489,6 @@ def handle_subnet_sweep():
 def handle_wireless_recon():
     """Tool 7: Wireless & RF Footprinting Wrapper."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PAGE: WIRELESS & RF FOOTPRINTING ===".center(60))
     print("-" * 60)
@@ -516,7 +518,7 @@ def handle_wireless_recon():
         print("=== WIRELESS RECON REPORT ===".center(60))
         print(output if output else f"{Colors.YELLOW}[*] Command executed but returned no output.{Colors.ENDC}")
         
-        log_scan("Wireless Recon", "Local RF", output)
+        log_scan_result("Wireless Recon", "Local RF", output)
         print(f"{Colors.GREEN}\n[✔] Wireless telemetry logged to database.{Colors.ENDC}")
     except Exception as e:
         print(f"{Colors.RED}\n[-] Wireless command failed: {e}{Colors.ENDC}")
@@ -526,7 +528,6 @@ def handle_wireless_recon():
 def handle_hash_identifier():
     """Tool 8: Hash Identification & Cracking Assistant."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PAGE: HASH IDENTIFIER & AUDIT ===".center(60))
     print("-" * 60)
@@ -553,7 +554,6 @@ def handle_hash_identifier():
         identified.append("Unknown or complex hash format")
         
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== HASH ANALYSIS RESULTS ===".center(60))
     print(f"[*] Input Hash: {hash_str}")
@@ -573,7 +573,7 @@ def handle_hash_identifier():
                 cmd = ["hashcat", "-a", "0", "-m", mode, hash_str, wordlist]
                 res = subprocess.run(cmd, capture_output=True, text=True, check=True)
                 print(res.stdout)
-                log_scan("Hash Audit", hash_str, res.stdout)
+                log_scan_result("Hash Audit", hash_str, res.stdout)
             except Exception as e:
                 print(f"{Colors.RED}\n[-] Hashcat execution failed: {e}{Colors.ENDC}")
                 
@@ -599,7 +599,7 @@ def handle_exploit_search():
         print(f"=== EXPLOIT RESULTS: {query} ===".center(60))
         print(output)
         
-        log_scan("Exploit Search", query, output)
+        log_scan_result("Exploit Search", query, output)
         print(f"{Colors.GREEN}\n[✔] Exploit search results logged to database.{Colors.ENDC}")
     except FileNotFoundError:
         print(f"{Colors.RED}\n[-] Error: 'searchsploit' binary not found. Install exploitdb.{Colors.ENDC}")
@@ -642,7 +642,7 @@ def handle_hydra_audit():
         print(f"=== HYDRA AUDIT RESULTS ===".center(60))
         print(output)
         
-        log_scan("Hydra Audit", f"{service}://{target}", output)
+        log_scan_result("Hydra Audit", f"{service}://{target}", output)
         print(f"{Colors.GREEN}\n[✔] Credential audit logged to database.{Colors.ENDC}")
     except Exception as e:
         print(f"{Colors.RED}\n[-] Hydra execution failed: {e}{Colors.ENDC}")
@@ -652,7 +652,6 @@ def handle_hydra_audit():
 def handle_wireless_bt_scanner():
     """Option 1: Scan nearby Wi-Fi networks and Bluetooth devices using Termux API or binaries."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== OPTION 1: WIRELESS & BLUETOOTH SCAN ===".center(60))
     print("-" * 60)
@@ -704,13 +703,12 @@ def handle_wireless_bt_scanner():
     else:
         print(f"{Colors.RED}[-] Bluetooth scan returned no data. Ensure Bluetooth is enabled.{Colors.ENDC}")
         
-    log_scan("Wireless & BT Scanner", "Local Airspace", "Executed airspace scan via Termux API/binaries")
+    log_scan_result("Wireless & BT Scanner", "Local Airspace", "Executed airspace scan via Termux API/binaries")
     input(f"{Colors.YELLOW}\nPress Enter to return to main menu...{Colors.ENDC}")
 
 def handle_subnet_sweep_tool():
     """Option 2: Whole Subnet Host Sweep (Active Discovery)."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== OPTION 2: WHOLE SUBNET HOST SWEEP ===".center(60))
     print("-" * 60)
@@ -731,7 +729,7 @@ def handle_subnet_sweep_tool():
         cmd = ["nmap", "-sn", target_subnet]
         res = subprocess.run(cmd, capture_output=True, text=True, check=True)
         print(res.stdout)
-        log_scan("Subnet Sweep", target_subnet, res.stdout)
+        log_scan_result("Subnet Sweep", target_subnet, res.stdout)
     except Exception as e:
         print(f"{Colors.RED}\n[-] Subnet sweep failed: {e}{Colors.ENDC}")
         
@@ -818,7 +816,7 @@ def handle_ssh_audit():
             print(f"=== SSH KEYSCAN TELEMETRY: {target} ===".center(60))
             print(output)
             
-            log_scan("SSH Keyscan", f"{target}:{port}", output)
+            log_scan_result("SSH Keyscan", f"{target}:{port}", output)
             print(f"{Colors.GREEN}\n[✔] SSH key telemetry logged to database.{Colors.ENDC}")
         except Exception as e:
             print(f"{Colors.RED}\n[-] SSH keyscan failed: {e}{Colors.ENDC}")
@@ -839,7 +837,7 @@ def handle_ssh_audit():
                 res = subprocess.run(cmd, capture_output=True, text=True, timeout=15)
                 output = res.stdout
                 print(output)
-                log_scan("SSH Remote Exec", f"{user}@{target}", output)
+                log_scan_result("SSH Remote Exec", f"{user}@{target}", output)
             except Exception as e:
                 print(f"{Colors.RED}\n[-] Remote command failed: {e}{Colors.ENDC}")
                 
@@ -848,7 +846,6 @@ def handle_ssh_audit():
 def handle_powershell_audit():
     """Tool: PowerShell Core (pwsh) & WinRM Remote Management."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PAGE: POWERSHELL CORE & WINRM ===".center(60))
     print("-" * 60)
@@ -880,7 +877,7 @@ def handle_powershell_audit():
             print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
             print("=== POWERSHELL EXECUTION OUTPUT ===".center(60))
             print(res.stdout)
-            log_scan("PowerShell Command", "Local Host", res.stdout)
+            log_scan_result("PowerShell Command", "Local Host", res.stdout)
         except Exception as e:
             print(f"{Colors.RED}\n[-] PowerShell execution failed: {e}{Colors.ENDC}")
             
@@ -889,7 +886,6 @@ def handle_powershell_audit():
 def handle_wireless_recon():
     """Tool: Wireless & RF Footprinting with fallback interface checks."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PAGE: WIRELESS & RF FOOTPRINTING ===".center(60))
     print("-" * 60)
@@ -932,17 +928,15 @@ def handle_wireless_recon():
             output = f"[-] Wi-Fi scan failed: {e}"
             
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== WIRELESS / RF TELEMETRY ===".center(60))
     print(output)
-    log_scan("Wireless Recon", "Airspace", output)
+    log_scan_result("Wireless Recon", "Airspace", output)
     input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_monitor_mode():
     """Hardware Tool: Toggle wireless interface monitor mode via airmon-ng or iwconfig."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== WIRELESS MONITOR MODE MANAGER ===".center(60))
     print("-" * 60)
@@ -986,7 +980,6 @@ def handle_monitor_mode():
 def handle_wordlist_manager():
     """Integrated Wordlist Manager: Verify and sync standard wordlists."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== INTEGRATED WORDLIST MANAGER ===".center(60))
     print("-" * 60)
@@ -1015,7 +1008,6 @@ def handle_wordlist_manager():
 def handle_bluetooth_recon():
     """Tool: Bluetooth & BLE Airspace Mapping."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== BLUETOOTH & BLE AIRSPACE RECON ===".center(60))
     print("-" * 60)
@@ -1037,7 +1029,7 @@ def handle_bluetooth_recon():
             print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
             print("=== CLASSIC BLUETOOTH SCAN RESULTS ===".center(60))
             print(output)
-            log_scan("Bluetooth Scan", "Airspace", output)
+            log_scan_result("Bluetooth Scan", "Airspace", output)
         except Exception as e:
             print(f"{Colors.RED}[-] Bluetooth scan failed (ensure HCI interface is up): {e}{Colors.ENDC}")
             
@@ -1050,7 +1042,7 @@ def handle_bluetooth_recon():
             print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
             print("=== BLE SCAN RESULTS ===".center(60))
             print(output)
-            log_scan("BLE Scan", "Airspace", output)
+            log_scan_result("BLE Scan", "Airspace", output)
         except Exception as e:
             print(f"{Colors.RED}[-] BLE scan failed: {e}{Colors.ENDC}")
             
@@ -1059,7 +1051,6 @@ def handle_bluetooth_recon():
 def handle_payload_generator():
     """Tool: Tactical Reverse Shell & Payload Generator."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PAGE: TACTICAL REVERSE SHELL ===".center(60))
     print("-" * 60)
@@ -1094,14 +1085,13 @@ def handle_payload_generator():
     print("=== GENERATED PAYLOAD STUB ===".center(60))
     print(f"\n{payload}\n")
     print("-" * 60)
-    log_scan("Payload Generator", f"LHOST:{lhost} LPORT:{lport}", payload)
+    log_scan_result("Payload Generator", f"LHOST:{lhost} LPORT:{lport}", payload)
     
     input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
 
 def handle_qr_exploit():
     """Tool: QR Code Payload / Phishing Vector Generator."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PAGE: QR CODE PAYLOAD GENERATOR ===".center(60))
     print("-" * 60)
@@ -1119,7 +1109,7 @@ def handle_qr_exploit():
         print(f"=== ASCII QR CODE PAYLOAD ===".center(60))
         qr.print_ascii(tty=True)
         print("-" * 60)
-        log_scan("QR Code Generator", target_url, "Generated ASCII QR payload")
+        log_scan_result("QR Code Generator", target_url, "Generated ASCII QR payload")
     except Exception as e:
         print(f"{Colors.RED}[-] Failed to generate QR code: {e}{Colors.ENDC}")
         
@@ -1128,7 +1118,6 @@ def handle_qr_exploit():
 def handle_bluetooth_attacks():
     """Tool: Advanced Bluetooth Enumeration & L2CAP Stress Testing."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PAGE: BLUETOOTH ATTACK SUITE ===".center(60))
     print("-" * 60)
@@ -1154,7 +1143,7 @@ def handle_bluetooth_attacks():
             print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
             print("=== SDP BROWSE RESULTS ===".center(60))
             print(output)
-            log_scan("Bluetooth SDP Browse", target_mac, output)
+            log_scan_result("Bluetooth SDP Browse", target_mac, output)
         except Exception as e:
             print(f"{Colors.RED}[-] SDP browse failed: {e}{Colors.ENDC}")
             
@@ -1168,7 +1157,7 @@ def handle_bluetooth_attacks():
             print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
             print("=== L2PING STRESS TEST RESULTS ===".center(60))
             print(output)
-            log_scan("Bluetooth l2ping", target_mac, output)
+            log_scan_result("Bluetooth l2ping", target_mac, output)
         except Exception as e:
             print(f"{Colors.RED}[-] l2ping attack failed: {e}{Colors.ENDC}")
             
@@ -1177,7 +1166,6 @@ def handle_bluetooth_attacks():
 def handle_crypto_engine():
     """Tool: Cryptographic Encryption and Decryption Engine."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== PAGE: CRYPTO & OBFUSCATION ENGINE ===".center(60))
     print("-" * 60)
@@ -1197,11 +1185,11 @@ def handle_crypto_engine():
             if mode.startswith('e'):
                 res = base64.b64encode(text.encode('utf-8')).decode('utf-8')
                 print(f"{Colors.GREEN}\n[+] Encoded (Base64):\n{res}{Colors.ENDC}")
-                log_scan("Crypto Engine", "Base64 Encode", res)
+                log_scan_result("Crypto Engine", "Base64 Encode", res)
             else:
                 res = base64.b64decode(text.encode('utf-8')).decode('utf-8')
                 print(f"{Colors.GREEN}\n[+] Decoded (Base64):\n{res}{Colors.ENDC}")
-                log_scan("Crypto Engine", "Base64 Decode", res)
+                log_scan_result("Crypto Engine", "Base64 Decode", res)
         except Exception as e:
             print(f"{Colors.RED}\n[-] Crypto operation failed: {e}{Colors.ENDC}")
             
@@ -1214,7 +1202,7 @@ def handle_crypto_engine():
         output = "".join(chr(ord(c) ^ ord(k)) for c in text)
         b64_out = base64.b64encode(output.encode('utf-8')).decode('utf-8')
         print(f"{Colors.GREEN}\n[+] XOR Output (Base64 string): {b64_out}{Colors.ENDC}")
-        log_scan("Crypto Engine", "XOR Cipher", b64_out)
+        log_scan_result("Crypto Engine", "XOR Cipher", b64_out)
         
     input(f"{Colors.YELLOW}\nPress Enter to return...{Colors.ENDC}")
     
@@ -1258,7 +1246,6 @@ def handle_global_target_manager():
 def handle_binary_diagnostics():
     """Phase 7: Tactical Binary Health & Dependency Diagnostics."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== BINARY HEALTH & DEPENDENCY DIAGNOSTICS ===".center(60))
     print("-" * 60)
@@ -1323,7 +1310,6 @@ def handle_webhook_config():
 def handle_quick_shell():
     """Phase 9: Operator Quick-Shell Launcher."""
     clear_screen()
-    print(f"{Colors.YELLOW}{BANNER_IMAGE}{Colors.ENDC}")
     print_tactical_header()
     print("=== OPERATOR QUICK-SHELL ===".center(60))
     print("Type any command to execute in the system shell.")
