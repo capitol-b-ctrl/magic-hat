@@ -8,6 +8,7 @@ from magic_hat.utils import (
     BANNER_IMAGE,
     clear_screen,
     print_tactical_header,
+    tactical_spinner,
     Colors
 )
 from magic_hat.modules.base import (
@@ -42,7 +43,8 @@ def handle_hydra_audit():
     print(f"{Colors.GREEN}\n[+] Launching Hydra brute-force audit against {target} ({service})...{Colors.ENDC}")
     try:
         cmd = ["hydra", "-l", user, "-P", wordlist, target, service]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        with tactical_spinner(f"Engaging Hydra brute-force audit on {target} ({service})..."):
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
@@ -209,7 +211,8 @@ def handle_hash_identifier():
             print(f"{Colors.GREEN}\n[+] Launching hashcat audit...{Colors.ENDC}")
             try:
                 cmd = ["hashcat", "-a", "0", "-m", mode, hash_str, wordlist]
-                res = subprocess.run(cmd, capture_output=True, text=True, check=True)
+                with tactical_spinner("Engaging Hashcat password audit against target hash..."):
+                    res = subprocess.run(cmd, capture_output=True, text=True, check=True)
                 print(res.stdout)
                 log_scan_result("Hash Audit", hash_str, res.stdout)
             except Exception as e:
@@ -230,7 +233,8 @@ def handle_exploit_search():
     print(f"{Colors.GREEN}\n[+] Querying local exploit database for '{query}'...{Colors.ENDC}")
     try:
         cmd = ["searchsploit", query]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        with tactical_spinner(f"Querying Exploit-DB archives for '{query}'..."):
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()

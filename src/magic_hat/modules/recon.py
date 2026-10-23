@@ -10,6 +10,7 @@ from magic_hat.utils import (
     get_all_device_ips,
     get_subnet_range,
     send_notification,
+    tactical_spinner,
     Colors
 )
 from magic_hat.modules.base import (
@@ -67,10 +68,10 @@ def handle_nmap_menu():
             continue
 
         print(f"{Colors.GREEN}\n[+] Launching Nmap target profiler on {target} with flags: {' '.join(flags)}{Colors.ENDC}")
-        print(f"{Colors.YELLOW}[*] Performing deep enumeration (this may take a moment)...{Colors.ENDC}")
         try:
             cmd = ["nmap"] + flags + [target]
-            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+            with tactical_spinner(f"Engaging Nmap profile on {target}..."):
+                result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             output = result.stdout
             
             telemetry = parse_nmap_deep_telemetry(output)
@@ -129,7 +130,8 @@ def handle_net_shark():
     print(f"{Colors.YELLOW}[*] Press Ctrl+C if you need to abort early.\n{Colors.ENDC}")
     try:
         cmd = ["tshark", "-i", iface, "-c", str(count)]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        with tactical_spinner(f"Sniffing {count} packets on interface {iface}..."):
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
@@ -175,7 +177,8 @@ def handle_web_fuzzer():
     print(f"{Colors.GREEN}\n[+] Launching FFUF fuzzer against {url}...{Colors.ENDC}")
     try:
         cmd = ["ffuf", "-u", url, "-w", wordlist, "-s"]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        with tactical_spinner(f"Fuzzing web endpoints on {url}..."):
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
@@ -220,7 +223,8 @@ def handle_dns_recon():
         if qtype:
             cmd.append(qtype)
             
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        with tactical_spinner(f"Querying DNS records for {domain}..."):
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
@@ -256,7 +260,8 @@ def handle_tech_fingerprint():
     print(f"{Colors.GREEN}\n[+] Fingerprinting technology stack for {target}...{Colors.ENDC}")
     try:
         cmd = ["whatweb", target]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        with tactical_spinner(f"Fingerprinting technology stack on {target}..."):
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()
@@ -293,7 +298,8 @@ def handle_subnet_sweep():
     print(f"{Colors.GREEN}\n[+] Sweeping subnet {target_sub} for live hosts...{Colors.ENDC}")
     try:
         cmd = ["nmap", "-sn", target_sub]
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        with tactical_spinner(f"Sweeping subnet {target_sub} for active hosts..."):
+            result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         output = result.stdout
         
         clear_screen()

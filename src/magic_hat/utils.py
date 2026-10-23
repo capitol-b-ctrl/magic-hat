@@ -9,6 +9,23 @@ import shutil
 import subprocess
 import urllib.request
 import socket
+from contextlib import contextmanager
+
+try:
+    from rich.console import Console
+    from rich.progress import (
+        Progress,
+        SpinnerColumn,
+        TextColumn,
+        BarColumn,
+        TaskProgressColumn,
+        TimeElapsedColumn
+    )
+    RICH_AVAILABLE = True
+    console = Console()
+except ImportError:
+    RICH_AVAILABLE = False
+    console = None
 
 
 # Global engagement target state
@@ -175,3 +192,34 @@ def load_config():
         "required_binaries": ["nmap", "tshark", "ffuf", "dig", "searchsploit"],
         "webhook_url": ""
     }
+
+
+@contextmanager
+def tactical_spinner(description="Processing tactical telemetry...", spinner="dots"):
+    """
+    Context manager that displays a matrix-green spinner
+    during long-running network or audit operations.
+    """
+    if RICH_AVAILABLE and console:
+        with console.status(f"[bold green]{description}[/bold green]", spinner=spinner) as status:
+            yield status
+    else:
+        print(f"\033[92m[*] {description}\033[0m")
+        yield None
+
+
+def create_tactical_progress():
+    """
+    Returns a configured Rich Progress instance with a matrix-green theme
+    for tracking multi-step pipeline actions.
+    """
+    if RICH_AVAILABLE and console:
+        return Progress(
+            SpinnerColumn(spinner_name="dots", style="bold green"),
+            TextColumn("[bold green]{task.description}[/bold green]"),
+            BarColumn(bar_width=None, style="dim green", complete_style="bold green"),
+            TaskProgressColumn(style="bold cyan"),
+            TimeElapsedColumn(),
+            console=console
+        )
+    return None
