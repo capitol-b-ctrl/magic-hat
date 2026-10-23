@@ -27,27 +27,27 @@
 
 ```text
 Magic_Hat/
-├── .git/
-├── .gitignore
-├── .venv/
-├── .ruff_cache/
 ├── README.md
 ├── pyproject.toml
 ├── setup.py
 ├── src/
-│   ├── command_not_found_handle
-│   ├── magic-hat.py
-│   ├── magic_hat.egg-info/
 │   └── magic_hat/
-│       ├── .ruff_cache/
 │       ├── __init__.py
-│       ├── __pycache__/
 │       ├── config.json
 │       ├── data/
 │       │   └── magic_hat.db
 │       ├── database.py
 │       ├── main.py
+│       ├── modules/
+│       │   ├── __init__.py
+│       │   ├── auditing.py
+│       │   ├── base.py
+│       │   ├── payloads.py
+│       │   ├── recon.py
+│       │   ├── system.py
+│       │   └── wireless.py
 │       ├── pipeline.py
+│       ├── remote_agent.py
 │       ├── reports/
 │       ├── reports.py
 │       ├── server.py
@@ -55,7 +55,8 @@ Magic_Hat/
 │       └── utils.py
 └── tests/
     ├── __init__.py
-    └── test_database.py
+    ├── test_database.py
+    └── test_modules.py
 ```
 
 
