@@ -10,6 +10,8 @@ setup(
     include_package_data=True,
     install_requires=[
         "flask>=2.0.0",
+        "rich>=12.0.0",
+        "qrcode>=7.0",
     ],
     entry_points={
         "console_scripts": [

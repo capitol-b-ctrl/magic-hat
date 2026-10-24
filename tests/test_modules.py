@@ -67,3 +67,13 @@ def test_modules_exported_as_callables():
     ]
     for handler in handlers:
         assert callable(handler)
+
+
+def test_tactical_spinner_context_manager():
+    """Verify tactical_spinner executes as a valid context manager."""
+    from magic_hat.utils import tactical_spinner
+    executed = False
+    with tactical_spinner("Test Operation"):
+        executed = True
+    assert executed is True
+
